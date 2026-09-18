@@ -225,7 +225,7 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         runCatching {
             val context = DynamicColors.wrapContextIfAvailable(ContextThemeWrapper(this, R.style.Theme_OfflineCounter_Overlay))
             val onSurface = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnSurface, android.graphics.Color.WHITE)
-            val surface = MaterialColors.getColor(context, com.google.android.material.R.attr.colorInverseSurface, android.graphics.Color.rgb(31, 41, 55))
+            val surface = MaterialColors.getColor(context, com.google.android.material.R.attr.colorSurfaceInverse, android.graphics.Color.rgb(31, 41, 55))
             val card = MaterialCardView(context).apply {
                 radius = 18f * resources.displayMetrics.density
                 cardElevation = 8f * resources.displayMetrics.density
