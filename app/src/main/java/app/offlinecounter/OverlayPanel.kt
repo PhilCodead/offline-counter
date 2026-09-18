@@ -43,14 +43,13 @@ class OverlayPanel(context: Context, private val actions: Actions) {
     private val stopButton = MaterialButton(themed)
     private val clearButton = MaterialButton(themed)
     private var expanded = false
-    private var blurAvailable = false
 
     init {
         root.radius = themed.dp(18f)
         root.cardElevation = themed.dp(7f)
         root.strokeWidth = themed.dp(1f).toInt()
         root.strokeColor = ColorUtils.setAlphaComponent(onSurface, 28)
-        root.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, 88))
+        root.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, 232))
         root.clipToOutline = true
 
         val content = LinearLayout(themed).apply {
@@ -131,7 +130,7 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         details.visibility = if (value) View.VISIBLE else View.GONE
         expandButton.contentDescription = if (value) "Свернуть панель" else "Развернуть панель"
         expandButton.animate().rotation(if (value) 180f else 0f).setDuration(180).start()
-        val mode = glassMode(value, blurAvailable)
+        val mode = glassMode(value, blurAvailable = false)
         val alpha = when (mode) {
             GlassMode.CompactBlur -> 118
             GlassMode.ExpandedBlur -> 210
@@ -140,13 +139,6 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         }
         root.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, alpha))
         root.strokeColor = ColorUtils.setAlphaComponent(onSurface, if (value) 38 else 28)
-    }
-
-    fun setBlurAvailable(available: Boolean) {
-        blurAvailable = available
-        val current = expanded
-        expanded = !current
-        setExpanded(current)
     }
 
     private fun configureDragHandle() {

@@ -34,14 +34,12 @@ data class OverlayUiState(
 }
 
 enum class OverlayAction(val requiresConfirmation: Boolean) {
-    Count(false), Export(false), Share(false), Expand(false), StopOrRecount(false), Clear(true), Disable(true)
+    Count(false), Export(false), Share(false), Expand(false), StopOrRecount(false), Clear(true), Disable(false)
 }
 
 enum class GlassMode { CompactBlur, ExpandedBlur, CompactOpaque, ExpandedOpaque }
 
 fun glassMode(expanded: Boolean, blurAvailable: Boolean): GlassMode = when {
-    expanded && blurAvailable -> GlassMode.ExpandedBlur
     expanded -> GlassMode.ExpandedOpaque
-    blurAvailable -> GlassMode.CompactBlur
     else -> GlassMode.CompactOpaque
 }

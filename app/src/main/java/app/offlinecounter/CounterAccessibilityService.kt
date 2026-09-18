@@ -26,12 +26,10 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     private lateinit var panel: OverlayPanel
     private lateinit var params: WindowManager.LayoutParams
     private lateinit var preferences: OverlayPreferences
-    private lateinit var blur: WindowBlurController
     private var lastPackage: String? = null
     private var targetPackage: String? = null
     private var lastExport: Uri? = null
     private var clearConfirmationUntil = 0L
-    private var disableConfirmationUntil = 0L
 
     override fun onServiceConnected() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -46,8 +44,6 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         ).apply { gravity = Gravity.TOP or Gravity.START; x = 0; y = dp(180) }
         panel.dragHandle.setOnTouchListener(DragListener())
         windowManager.addView(panel.root, params)
-        blur = WindowBlurController(windowManager, params, { updateWindow() }, panel::setBlurAvailable)
-        blur.attach()
         panel.root.post(::restorePosition)
         render()
     }
@@ -64,7 +60,6 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
-        if (::blur.isInitialized) blur.detach()
         if (::panel.isInitialized) runCatching { windowManager.removeView(panel.root) }
         super.onDestroy()
     }
@@ -97,8 +92,6 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     }
 
     override fun onClose() {
-        val now = SystemClock.elapsedRealtime()
-        if (now > disableConfirmationUntil) { disableConfirmationUntil = now + 3500; return panel.setStatus(getString(R.string.confirm_disable), true) }
         disableSelf()
     }
 
