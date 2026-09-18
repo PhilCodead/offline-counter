@@ -14,15 +14,17 @@ class OverlayUiStateTest {
     }
 
     @Test
-    fun destructiveActionsRequireConfirmation() {
+    fun onlyClearRequiresConfirmation() {
         assertTrue(OverlayAction.Clear.requiresConfirmation)
-        assertTrue(OverlayAction.Disable.requiresConfirmation)
+        assertFalse(OverlayAction.Disable.requiresConfirmation)
         assertFalse(OverlayAction.Share.requiresConfirmation)
     }
 
     @Test
-    fun opaqueFallbackWinsWhenBlurIsUnavailable() {
+    fun panelNeverRequestsBackgroundBlur() {
         assertEquals(GlassMode.CompactOpaque, glassMode(false, false))
         assertEquals(GlassMode.ExpandedOpaque, glassMode(true, false))
+        assertEquals(GlassMode.CompactOpaque, glassMode(false, true))
+        assertEquals(GlassMode.ExpandedOpaque, glassMode(true, true))
     }
 }
