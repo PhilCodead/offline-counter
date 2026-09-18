@@ -64,6 +64,20 @@ class CountingControllerTest {
         assertEquals(CountingPhase.Completed, controller.state.phase)
     }
 
+    @Test
+    fun repeatedUnavailableFramesEndWithRecoverableError() {
+        controller.start()
+        repeat(20) { controller.onSourceUnavailable() }
+        assertEquals(CountingPhase.Error, controller.state.phase)
+    }
+
+    @Test
+    fun startCollapsesExpandedPanel() {
+        controller.setExpanded(true)
+        controller.start()
+        assertEquals(false, controller.state.expanded)
+    }
+
     private fun frame(
         people: List<Person> = emptyList(),
         atTop: Boolean = false,

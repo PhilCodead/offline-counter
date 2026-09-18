@@ -24,4 +24,23 @@ class PersonParserTest {
         assertEquals("Светлицкая Екатерина Викторовна", result[1].fio)
         assertEquals("М", result[1].sex)
     }
+
+    @Test
+    fun rejectsMalformedDatesAndPreservesStatus() {
+        val people = parser.parse(listOf(
+            "Анна Смирнова ж, 34 года (31-12-1990)",
+            "Ирина Волкова ж, 30 лет (01.02.1994)",
+            "Не вакцинирован",
+        ))
+        assertEquals(1, people.size)
+        assertEquals("Не вакцинирован", people.single().status)
+    }
+
+    @Test
+    fun normalizedKeyCollapsesWhitespaceAndCase() {
+        assertEquals(
+            Person(" Анна  Смирнова ", "01.01.1990", "Ж", "").key,
+            Person("анна смирнова", "01.01.1990", "Ж", "").key,
+        )
+    }
 }
