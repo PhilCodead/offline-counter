@@ -1,4 +1,4 @@
-package com.example.offlinecounter
+package app.offlinecounter
 
 import android.content.Intent
 import android.os.Bundle

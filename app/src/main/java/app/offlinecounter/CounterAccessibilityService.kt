@@ -1,4 +1,4 @@
-package com.example.offlinecounter
+package app.offlinecounter
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent

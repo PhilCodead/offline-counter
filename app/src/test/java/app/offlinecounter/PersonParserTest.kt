@@ -1,4 +1,4 @@
-package com.example.offlinecounter
+package app.offlinecounter
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

@@ -1,4 +1,4 @@
-package com.example.offlinecounter
+package app.offlinecounter
 
 import android.content.Context
 import android.content.res.ColorStateList

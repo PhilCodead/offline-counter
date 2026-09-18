@@ -1,4 +1,4 @@
-package com.example.offlinecounter
+package app.offlinecounter
 
 import android.view.accessibility.AccessibilityNodeInfo
 import java.util.Locale

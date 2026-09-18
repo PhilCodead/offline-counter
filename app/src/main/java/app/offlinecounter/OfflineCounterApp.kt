@@ -1,4 +1,4 @@
-package com.example.offlinecounter
+package app.offlinecounter
 
 import android.app.Application
 import com.google.android.material.color.DynamicColors
