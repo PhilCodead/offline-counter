@@ -26,8 +26,10 @@ class CountingController {
     }
 
     fun onFrame(frame: FrameSnapshot): CountingCommand = when (state.phase) {
-        CountingPhase.Rewinding -> rewind(frame)
-        CountingPhase.Collecting -> collect(frame)
+        CountingPhase.Rewinding, CountingPhase.Collecting -> {
+            unavailableTicks = 0
+            if (state.phase == CountingPhase.Rewinding) rewind(frame) else collect(frame)
+        }
         else -> CountingCommand.Wait
     }
 

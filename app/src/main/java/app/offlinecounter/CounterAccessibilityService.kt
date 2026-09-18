@@ -6,94 +6,65 @@ import android.graphics.PixelFormat
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import android.provider.Settings
+import android.os.SystemClock
 import android.view.Gravity
 import android.view.MotionEvent
-import android.view.ContextThemeWrapper
 import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
-import androidx.core.graphics.ColorUtils
-import com.google.android.material.card.MaterialCardView
-import com.google.android.material.color.DynamicColors
-import com.google.android.material.color.MaterialColors
-import java.util.LinkedHashMap
 
 class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions {
-    private enum class Phase { Idle, Rewinding, Collecting }
-
     private val handler = Handler(Looper.getMainLooper())
     private val parser = PersonParser()
     private val scroll = ScrollTracker()
-    private val people = LinkedHashMap<String, Person>()
+    private val controller = CountingController()
     private val step = Runnable(::runCycle)
 
     private lateinit var windowManager: WindowManager
     private lateinit var panel: OverlayPanel
-    private lateinit var windowParams: WindowManager.LayoutParams
-    private lateinit var overlayPreferences: OverlayPreferences
-    private lateinit var blurController: WindowBlurController
-
-    private var phase = Phase.Idle
+    private lateinit var params: WindowManager.LayoutParams
+    private lateinit var preferences: OverlayPreferences
+    private lateinit var blur: WindowBlurController
     private var lastPackage: String? = null
     private var targetPackage: String? = null
-    private var lastFingerprint: Int? = null
-    private var stableFrames = 0
-    private var stalePasses = 0
-    private var rewindSteps = 0
-    private var scrollSteps = 0
-    private var unavailableTicks = 0
     private var lastExport: Uri? = null
     private var clearConfirmationUntil = 0L
     private var disableConfirmationUntil = 0L
 
     override fun onServiceConnected() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-        overlayPreferences = OverlayPreferences(this)
+        preferences = OverlayPreferences(this)
         panel = OverlayPanel(this, this)
-        windowParams = WindowManager.LayoutParams(
+        params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT,
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = 8
-            y = 180
-        }
+        ).apply { gravity = Gravity.TOP or Gravity.START; x = 0; y = dp(180) }
         panel.dragHandle.setOnTouchListener(DragListener())
-        windowManager.addView(panel.root, windowParams)
-        blurController = WindowBlurController(
-            windowManager,
-            windowParams,
-            { if (::panel.isInitialized) runCatching { windowManager.updateViewLayout(panel.root, windowParams) } },
-            panel::setBlurAvailable,
-        )
-        blurController.attach()
-        panel.root.post { restoreOverlayPosition() }
+        windowManager.addView(panel.root, params)
+        blur = WindowBlurController(windowManager, params, { updateWindow() }, panel::setBlurAvailable)
+        blur.attach()
+        panel.root.post(::restorePosition)
+        render()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         val packageName = event.packageName?.toString() ?: return
         if (packageName == this.packageName || packageName == "com.android.systemui" || packageName == "com.android.settings") return
-
         lastPackage = packageName
         scroll.update(event)
-
-        if (phase != Phase.Idle && packageName == targetPackage) schedule(70)
+        if (controller.state.phase in setOf(CountingPhase.Rewinding, CountingPhase.Collecting) && packageName == targetPackage) schedule(70)
     }
 
-    override fun onInterrupt() = stop("Остановлено")
+    override fun onInterrupt() { controller.stop(); render() }
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
-        if (::blurController.isInitialized) blurController.detach()
+        if (::blur.isInitialized) blur.detach()
         if (::panel.isInitialized) runCatching { windowManager.removeView(panel.root) }
         super.onDestroy()
     }
@@ -101,145 +72,70 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     override fun onCount() = startCount()
 
     override fun onExport() {
-        runCatching { ExcelExporter.export(this, people.values) }
-            .onSuccess { uri ->
-                lastExport = uri
-                panel.setStatus("Excel сохранён", true)
-                openExportLocation(uri)
-            }
+        runCatching { ExcelExporter.export(this, controller.people) }
+            .onSuccess { lastExport = it; panel.setStatus("Excel сохранён", true); openExport(it) }
             .onFailure { panel.setStatus("Не удалось сохранить Excel", true) }
     }
 
     override fun onShare() {
         val uri = lastExport ?: return panel.setStatus("Сначала сохраните Excel", true)
-        val intent = Intent(Intent.ACTION_SEND).apply {
+        startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
             type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             putExtra(Intent.EXTRA_STREAM, uri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        startActivity(Intent.createChooser(intent, "Передать Excel").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }, "Передать Excel").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     override fun onStopOrRecount() {
-        if (phase == Phase.Idle) startCount() else stop("Остановлено")
+        if (controller.state.phase in setOf(CountingPhase.Rewinding, CountingPhase.Collecting)) { controller.stop(); handler.removeCallbacks(step); render() } else startCount()
     }
 
     override fun onClear() {
-        val now = android.os.SystemClock.elapsedRealtime()
-        if (now > clearConfirmationUntil) {
-            clearConfirmationUntil = now + 3500
-            panel.setStatus(getString(R.string.confirm_clear), true)
-            return
-        }
-        phase = Phase.Idle
-        handler.removeCallbacks(step)
-        people.clear()
-        panel.update(0, 0, 0, false)
-        panel.setStatus("Очищено")
+        val now = SystemClock.elapsedRealtime()
+        if (now > clearConfirmationUntil) { clearConfirmationUntil = now + 3500; return panel.setStatus(getString(R.string.confirm_clear), true) }
+        handler.removeCallbacks(step); controller.clear(); render()
     }
 
     override fun onClose() {
-        val now = android.os.SystemClock.elapsedRealtime()
-        if (now > disableConfirmationUntil) {
-            disableConfirmationUntil = now + 3500
-            panel.setStatus(getString(R.string.confirm_disable), true)
-            return
-        }
-        handler.removeCallbacksAndMessages(null)
-        phase = Phase.Idle
+        val now = SystemClock.elapsedRealtime()
+        if (now > disableConfirmationUntil) { disableConfirmationUntil = now + 3500; return panel.setStatus(getString(R.string.confirm_disable), true) }
         disableSelf()
     }
 
     private fun startCount() {
-        val packageName = lastPackage ?: return panel.setStatus("Сначала откройте список", true)
-        targetPackage = packageName
-        people.clear()
-        phase = Phase.Rewinding
-        lastFingerprint = null
-        stableFrames = 0
-        stalePasses = 0
-        rewindSteps = 0
-        scrollSteps = 0
-        unavailableTicks = 0
-        scroll.reset()
-        panel.update(0, 0, 0, true)
-        panel.setStatus("Возврат к началу списка…")
-        schedule(0)
+        targetPackage = lastPackage ?: return panel.setStatus("Сначала откройте список", true)
+        scroll.reset(); controller.start(); render(); schedule(0)
     }
 
     private fun runCycle() {
-        if (phase == Phase.Idle) return
         val root = rootInActiveWindow
         if (root == null || root.packageName?.toString() != targetPackage) {
-            if (++unavailableTicks >= 20) stop("Список недоступен — нажмите «Пересчитать»") else schedule(250)
+            val command = controller.onSourceUnavailable(); render()
+            if (command !is CountingCommand.Fail) schedule(250)
             return
         }
-        unavailableTicks = 0
+        val snapshot = FrameSnapshot(parser.parse(root), scroll.isAtTop(), scroll.isAtBottom(), parser.fingerprint(root))
+        execute(controller.onFrame(snapshot), root)
+    }
 
-        val fingerprint = parser.fingerprint(root)
-        stableFrames = if (fingerprint == lastFingerprint) stableFrames + 1 else 0
-        lastFingerprint = fingerprint
-
-        when (phase) {
-            Phase.Rewinding -> rewind(root)
-            Phase.Collecting -> collect(root)
-            Phase.Idle -> Unit
+    private fun execute(command: CountingCommand, root: AccessibilityNodeInfo) {
+        render()
+        when (command) {
+            CountingCommand.ScrollBackward -> if (findScrollable(root)?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD) == true) schedule(180) else execute(controller.onFrame(FrameSnapshot(emptyList(), true, false, 0)), root)
+            CountingCommand.ScrollForward -> if (findScrollable(root)?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD) == true) schedule(220) else execute(controller.onFrame(FrameSnapshot(emptyList(), false, true, 0)), root)
+            CountingCommand.Wait -> schedule(90)
+            CountingCommand.Complete -> { render(); Toast.makeText(this, "Готово", Toast.LENGTH_SHORT).show() }
+            is CountingCommand.Fail -> render()
         }
     }
 
-    private fun rewind(root: AccessibilityNodeInfo) {
-        if (rewindSteps > 0 && scroll.isAtTop()) return beginCollection()
-        val scrollable = findScrollable(root) ?: return beginCollection()
-        if (stableFrames >= 2) return beginCollection()
-        if (!scrollable.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)) return beginCollection()
-        if (++rewindSteps >= 350) return beginCollection()
-        schedule(180)
+    private fun render() {
+        val state = controller.state
+        panel.update(state.total, state.women, state.men, state.phase in setOf(CountingPhase.Rewinding, CountingPhase.Collecting))
+        if (state.status.isNotEmpty()) panel.setStatus(state.status, state.phase == CountingPhase.Error)
     }
 
-    private fun beginCollection() {
-        phase = Phase.Collecting
-        stableFrames = 0
-        stalePasses = 0
-        lastFingerprint = null
-        panel.setStatus("Сбор данных…")
-        schedule(90)
-    }
-
-    private fun collect(root: AccessibilityNodeInfo) {
-        val before = people.size
-        parser.parse(root).forEach { person -> people.putIfAbsent(person.key, person) }
-        val added = people.size - before
-        panel.update(people.size, people.values.count { it.sex == "Ж" }, people.values.count { it.sex == "М" }, true)
-
-        if (scroll.isAtBottom()) return finishCount()
-        val scrollable = findScrollable(root) ?: return finishCount()
-        if (!scrollable.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)) return finishCount()
-
-        scrollSteps++
-        stalePasses = if (added == 0) stalePasses + 1 else 0
-        if (added > 0) stableFrames = 0
-
-        if (stableFrames >= 2 || stalePasses >= 15 || scrollSteps >= 1000) return finishCount()
-        schedule(220)
-    }
-
-    private fun finishCount() {
-        stop("Готово")
-        showCompletionFeedback()
-    }
-
-    private fun stop(status: String) {
-        phase = Phase.Idle
-        handler.removeCallbacks(step)
-        panel.update(people.size, people.values.count { it.sex == "Ж" }, people.values.count { it.sex == "М" }, false)
-        panel.setStatus(status)
-    }
-
-    private fun schedule(delayMs: Long) {
-        handler.removeCallbacks(step)
-        handler.postDelayed(step, delayMs)
-    }
-
+    private fun schedule(delay: Long) { handler.removeCallbacks(step); handler.postDelayed(step, delay) }
     private fun findScrollable(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
         if (node == null) return null
         if (node.isScrollable) return node
@@ -247,119 +143,23 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         return null
     }
 
-    private fun showCompletionFeedback() {
-        runCatching {
-            val context = DynamicColors.wrapContextIfAvailable(ContextThemeWrapper(this, R.style.Theme_OfflineCounter_Overlay))
-            val onSurface = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnSurface, android.graphics.Color.WHITE)
-            val surface = MaterialColors.getColor(context, com.google.android.material.R.attr.colorSurfaceInverse, android.graphics.Color.rgb(31, 41, 55))
-            val card = MaterialCardView(context).apply {
-                radius = 18f * resources.displayMetrics.density
-                cardElevation = 8f * resources.displayMetrics.density
-                setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, 246))
-            }
-            val row = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(16), dp(11), dp(18), dp(11))
-            }
-            row.addView(ImageView(context).apply {
-                setImageResource(R.drawable.ic_done)
-                setColorFilter(onSurface)
-            }, LinearLayout.LayoutParams(dp(22), dp(22)))
-            row.addView(TextView(context).apply {
-                text = "Готово — подсчёт успешно завершён"
-                setTextColor(onSurface)
-                textSize = 14f
-                typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
-            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                marginStart = dp(10)
-            })
-            card.addView(row)
-            val params = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                PixelFormat.TRANSLUCENT,
-            ).apply {
-                gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                y = dp(72)
-            }
-            windowManager.addView(card, params)
-            handler.postDelayed({ runCatching { windowManager.removeView(card) } }, 2800)
-        }.onFailure {
-            Toast.makeText(this, "Готово", Toast.LENGTH_LONG).show()
-        }
-    }
+    private fun bounds() = OverlayBounds(resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels, panel.root.measuredWidth.coerceAtLeast(dp(280)), panel.root.measuredHeight.coerceAtLeast(dp(68)), dp(24), dp(32))
+    private fun restorePosition() { val (saved, edge) = preferences.load(); val b = bounds(); val p = OverlayPlacement.denormalize(saved, b); params.x = if (edge == OverlayEdge.Start) 0 else b.width - b.panelWidth; params.y = p.y; updateWindow() }
+    private fun updateWindow() { if (::panel.isInitialized) runCatching { windowManager.updateViewLayout(panel.root, params) } }
+    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 
-    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
-
-    private fun overlayBounds() = OverlayBounds(
-        resources.displayMetrics.widthPixels,
-        resources.displayMetrics.heightPixels,
-        panel.root.measuredWidth.coerceAtLeast(dp(280)),
-        panel.root.measuredHeight.coerceAtLeast(dp(68)),
-        dp(24),
-        dp(32),
-    )
-
-    private fun restoreOverlayPosition() {
-        val (saved, edge) = overlayPreferences.load()
-        val bounds = overlayBounds()
-        val restored = OverlayPlacement.denormalize(saved, bounds)
-        windowParams.x = if (edge == OverlayEdge.Start) 0 else bounds.width - bounds.panelWidth
-        windowParams.y = restored.y
-        runCatching { windowManager.updateViewLayout(panel.root, windowParams) }
-    }
-
-    private fun openExportLocation(uri: Uri) {
-        val folder = Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload%2FOfflineCounter")
-        val folderIntent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(folder, "vnd.android.document/directory")
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        if (folderIntent.resolveActivity(packageManager) != null) {
-            startActivity(folderIntent)
-            return
-        }
-        val fileIntent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        if (fileIntent.resolveActivity(packageManager) != null) startActivity(fileIntent)
+    private fun openExport(uri: Uri) {
+        val intent = Intent(Intent.ACTION_VIEW).apply { setDataAndType(uri, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK) }
+        if (intent.resolveActivity(packageManager) != null) startActivity(intent)
     }
 
     private inner class DragListener : View.OnTouchListener {
-        private var startX = 0
-        private var startY = 0
-        private var touchX = 0f
-        private var touchY = 0f
-
+        private var start = OverlayPosition(0, 0); private var touchX = 0f; private var touchY = 0f
         override fun onTouch(view: View, event: MotionEvent): Boolean {
             when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
-                    startX = windowParams.x
-                    startY = windowParams.y
-                    touchX = event.rawX
-                    touchY = event.rawY
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val position = OverlayPlacement.clamp(OverlayPosition(startX + (event.rawX - touchX).toInt(), startY + (event.rawY - touchY).toInt()), overlayBounds())
-                    windowParams.x = position.x
-                    windowParams.y = position.y
-                    windowManager.updateViewLayout(panel.root, windowParams)
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    val bounds = overlayBounds()
-                    val current = OverlayPlacement.clamp(OverlayPosition(windowParams.x, windowParams.y), bounds)
-                    val edge = OverlayPlacement.nearestEdge(current, bounds)
-                    windowParams.x = if (edge == OverlayEdge.Start) 0 else bounds.width - bounds.panelWidth
-                    windowParams.y = current.y
-                    windowManager.updateViewLayout(panel.root, windowParams)
-                    view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
-                    overlayPreferences.save(OverlayPlacement.normalize(OverlayPosition(windowParams.x, windowParams.y), bounds), edge)
-                }
+                MotionEvent.ACTION_DOWN -> { start = OverlayPosition(params.x, params.y); touchX = event.rawX; touchY = event.rawY }
+                MotionEvent.ACTION_MOVE -> { val p = OverlayPlacement.clamp(OverlayPosition(start.x + (event.rawX - touchX).toInt(), start.y + (event.rawY - touchY).toInt()), bounds()); params.x = p.x; params.y = p.y; updateWindow() }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { val b = bounds(); val p = OverlayPlacement.clamp(OverlayPosition(params.x, params.y), b); val edge = OverlayPlacement.nearestEdge(p, b); params.x = if (edge == OverlayEdge.Start) 0 else b.width - b.panelWidth; params.y = p.y; updateWindow(); view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK); preferences.save(OverlayPlacement.normalize(OverlayPosition(params.x, params.y), b), edge) }
             }
             return true
         }
