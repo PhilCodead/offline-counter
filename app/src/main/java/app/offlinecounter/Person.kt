@@ -8,5 +8,6 @@ data class Person(
     val sex: String,
     val status: String,
 ) {
-    val key: String = "${fio.trim().lowercase(Locale.ROOT)}|$birthDate"
+    val normalizedFio: String = fio.trim().split(Regex("\\s+")).joinToString(" ")
+    val key: String = "${normalizedFio.lowercase(Locale.ROOT)}|$birthDate"
 }

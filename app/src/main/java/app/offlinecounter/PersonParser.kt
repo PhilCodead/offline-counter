@@ -34,7 +34,7 @@ class PersonParser {
             val inlineName = raw.substring(0, sexIndex).trim().takeIf(::isName)
             val fio = inlineName ?: findPreviousName(text, index) ?: return@forEachIndexed
             val status = findStatus(text, index)
-            result += Person(fio, birthDate, sex, status)
+            result += Person(fio.trim().split(Regex("\\s+")).joinToString(" "), birthDate, sex, status)
         }
         return result
     }

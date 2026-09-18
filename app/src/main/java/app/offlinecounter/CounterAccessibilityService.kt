@@ -36,6 +36,8 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     private lateinit var windowManager: WindowManager
     private lateinit var panel: OverlayPanel
     private lateinit var windowParams: WindowManager.LayoutParams
+    private lateinit var overlayPreferences: OverlayPreferences
+    private lateinit var blurController: WindowBlurController
 
     private var phase = Phase.Idle
     private var lastPackage: String? = null
@@ -47,9 +49,12 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     private var scrollSteps = 0
     private var unavailableTicks = 0
     private var lastExport: Uri? = null
+    private var clearConfirmationUntil = 0L
+    private var disableConfirmationUntil = 0L
 
     override fun onServiceConnected() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        overlayPreferences = OverlayPreferences(this)
         panel = OverlayPanel(this, this)
         windowParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -64,6 +69,14 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         }
         panel.dragHandle.setOnTouchListener(DragListener())
         windowManager.addView(panel.root, windowParams)
+        blurController = WindowBlurController(
+            windowManager,
+            windowParams,
+            { if (::panel.isInitialized) runCatching { windowManager.updateViewLayout(panel.root, windowParams) } },
+            panel::setBlurAvailable,
+        )
+        blurController.attach()
+        panel.root.post { restoreOverlayPosition() }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
@@ -80,6 +93,7 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
+        if (::blurController.isInitialized) blurController.detach()
         if (::panel.isInitialized) runCatching { windowManager.removeView(panel.root) }
         super.onDestroy()
     }
@@ -111,6 +125,12 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     }
 
     override fun onClear() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now > clearConfirmationUntil) {
+            clearConfirmationUntil = now + 3500
+            panel.setStatus(getString(R.string.confirm_clear), true)
+            return
+        }
         phase = Phase.Idle
         handler.removeCallbacks(step)
         people.clear()
@@ -119,6 +139,12 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     }
 
     override fun onClose() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now > disableConfirmationUntil) {
+            disableConfirmationUntil = now + 3500
+            panel.setStatus(getString(R.string.confirm_disable), true)
+            return
+        }
         handler.removeCallbacksAndMessages(null)
         phase = Phase.Idle
         disableSelf()
@@ -268,6 +294,24 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
+    private fun overlayBounds() = OverlayBounds(
+        resources.displayMetrics.widthPixels,
+        resources.displayMetrics.heightPixels,
+        panel.root.measuredWidth.coerceAtLeast(dp(280)),
+        panel.root.measuredHeight.coerceAtLeast(dp(68)),
+        dp(24),
+        dp(32),
+    )
+
+    private fun restoreOverlayPosition() {
+        val (saved, edge) = overlayPreferences.load()
+        val bounds = overlayBounds()
+        val restored = OverlayPlacement.denormalize(saved, bounds)
+        windowParams.x = if (edge == OverlayEdge.Start) 0 else bounds.width - bounds.panelWidth
+        windowParams.y = restored.y
+        runCatching { windowManager.updateViewLayout(panel.root, windowParams) }
+    }
+
     private fun openExportLocation(uri: Uri) {
         val folder = Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload%2FOfflineCounter")
         val folderIntent = Intent(Intent.ACTION_VIEW).apply {
@@ -301,9 +345,20 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
                     touchY = event.rawY
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    windowParams.x = startX + (event.rawX - touchX).toInt()
-                    windowParams.y = startY + (event.rawY - touchY).toInt()
+                    val position = OverlayPlacement.clamp(OverlayPosition(startX + (event.rawX - touchX).toInt(), startY + (event.rawY - touchY).toInt()), overlayBounds())
+                    windowParams.x = position.x
+                    windowParams.y = position.y
                     windowManager.updateViewLayout(panel.root, windowParams)
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    val bounds = overlayBounds()
+                    val current = OverlayPlacement.clamp(OverlayPosition(windowParams.x, windowParams.y), bounds)
+                    val edge = OverlayPlacement.nearestEdge(current, bounds)
+                    windowParams.x = if (edge == OverlayEdge.Start) 0 else bounds.width - bounds.panelWidth
+                    windowParams.y = current.y
+                    windowManager.updateViewLayout(panel.root, windowParams)
+                    view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
+                    overlayPreferences.save(OverlayPlacement.normalize(OverlayPosition(windowParams.x, windowParams.y), bounds), edge)
                 }
             }
             return true

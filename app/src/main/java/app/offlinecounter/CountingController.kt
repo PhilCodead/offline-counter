@@ -7,6 +7,7 @@ class CountingController {
     private var stalePasses = 0
     private var rewindSteps = 0
     private var scrollSteps = 0
+    private var unavailableTicks = 0
 
     var state = OverlayUiState()
         private set
@@ -19,7 +20,8 @@ class CountingController {
         stalePasses = 0
         rewindSteps = 0
         scrollSteps = 0
-        state = OverlayUiState(phase = CountingPhase.Rewinding, status = "Возврат к началу списка…")
+        unavailableTicks = 0
+        state = OverlayUiState(phase = CountingPhase.Rewinding, status = "Возврат к началу списка…", expanded = false)
         return CountingCommand.ScrollBackward
     }
 
@@ -37,6 +39,18 @@ class CountingController {
         collected.clear()
         stalePasses = 0
         state = OverlayUiState(status = "Очищено")
+    }
+
+    fun setExpanded(expanded: Boolean) {
+        state = state.copy(expanded = expanded)
+    }
+
+    fun onSourceUnavailable(): CountingCommand {
+        unavailableTicks++
+        if (unavailableTicks < MAX_UNAVAILABLE_TICKS) return CountingCommand.Wait
+        val message = "Список недоступен — попробуйте снова"
+        state = state.copy(phase = CountingPhase.Error, status = message, expanded = true)
+        return CountingCommand.Fail(message)
     }
 
     private fun rewind(frame: FrameSnapshot): CountingCommand {
@@ -74,5 +88,6 @@ class CountingController {
         const val MAX_REWIND_STEPS = 350
         const val MAX_SCROLL_STEPS = 1000
         const val MAX_STALE_PASSES = 15
+        const val MAX_UNAVAILABLE_TICKS = 20
     }
 }

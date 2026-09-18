@@ -1,20 +1,32 @@
-# Offline Counter 0.13
+# Offline Counter 0.14
 
-Основная кодовая база проекта переведена на Kotlin и обычную структуру Android Studio/Gradle.
+Локальное Android-приложение Kerimli Systems для подсчёта записей в прокручиваемом списке через службу специальных возможностей и экспорта результата в Excel.
 
-## Архитектура
+## Возможности
 
-- `MainActivity` — стартовый экран и переход в настройки Accessibility.
-- `CounterAccessibilityService` — state machine сбора, автопрокрутка, экспорт и Quick Share.
-- `ScrollTracker` — границы списка по `TYPE_VIEW_SCROLLED` (`fromIndex/toIndex/itemCount`, `scrollY/maxScrollY`).
-- `PersonParser` — извлечение ФИО, даты рождения, пола и статуса из Accessibility tree.
-- `OverlayPanel` — Material 3 overlay с dynamic colors, ripple, haptic feedback и vector icons.
-- `ExcelExporter` — локальное формирование XLSX на основе валидного шаблона.
+- плавающая панель поверх исходного приложения;
+- автоматическая прокрутка, устранение повторов и подсчёт по полу;
+- сохранение XLSX в `Загрузки/OfflineCounter` и передача системным меню;
+- One UI-ориентированный интерфейс, светлая/тёмная тема, размытие Android 12+ и непрозрачный fallback;
+- привязка панели к краю и сохранение её положения;
+- полностью автономная работа без разрешения `INTERNET`.
 
 ## Сборка
 
-Откройте каталог `android-studio` в Android Studio, дождитесь Gradle Sync и соберите `app` как обычный Android application module.
+Требуются JDK 17 и Android SDK 35.
 
-Требования проекта: JDK 17, Android SDK 35, minSdk 29.
+```bash
+./gradlew clean testDebugUnitTest lintDebug assembleDebug
+```
 
-В manifest отсутствует `android.permission.INTERNET`.
+APK: `app/build/outputs/apk/debug/app-debug.apk`.
+
+## Запуск
+
+Откройте приложение, перейдите в настройки специальных возможностей и включите «Оффлайн-счётчик». Затем откройте целевой список и используйте плавающую панель. Для очистки результатов и отключения панели требуется повторное подтверждение.
+
+## История
+
+- 0.12 — исходная автономная DEX-версия;
+- 0.13 — перенос в Kotlin/Android Studio;
+- 0.14 — чистая архитектура, тестируемые компоненты, One UI-интерфейс, новая адаптивная иконка и брендинг Kerimli Systems.

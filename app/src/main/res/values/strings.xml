@@ -8,4 +8,12 @@
     <string name="close_app">Закрыть приложение</string>
     <string name="developer_logo">Kerimli Systems</string>
     <string name="version_format">Версия %1$s</string>
+    <string name="service_title">Плавающая панель</string>
+    <string name="service_enabled">Служба включена — панель готова к работе</string>
+    <string name="service_disabled">Служба выключена</string>
+    <string name="manage_accessibility">Настроить специальные возможности</string>
+    <string name="local_title">Конфиденциальность и экспорт</string>
+    <string name="local_description">Подсчёт выполняется на устройстве. Интернет не используется, результаты сохраняются в Excel в папке «Загрузки».</string>
+    <string name="confirm_clear">Нажмите «Очистить» ещё раз, чтобы удалить результаты</string>
+    <string name="confirm_disable">Нажмите закрытие ещё раз, чтобы отключить панель</string>
 </resources>

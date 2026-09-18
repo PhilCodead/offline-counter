@@ -43,6 +43,7 @@ class OverlayPanel(context: Context, private val actions: Actions) {
     private val stopButton = MaterialButton(themed)
     private val clearButton = MaterialButton(themed)
     private var expanded = false
+    private var blurAvailable = false
 
     init {
         root.radius = themed.dp(18f)
@@ -73,16 +74,17 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         configureTextButton(excelButton, "В Excel", secondary, actions::onExport)
         compact.addView(excelButton, wrapWithStartMargin(4))
 
-        configureIconButton(shareButton, R.drawable.ic_share, actions::onShare)
+        configureIconButton(shareButton, R.drawable.ic_share, "Передать Excel", actions::onShare)
         compact.addView(shareButton, fixedWithStartMargin(48, 48, 4))
 
-        configureIconButton(expandButton, R.drawable.ic_expand_more) { setExpanded(!expanded) }
+        configureIconButton(expandButton, R.drawable.ic_expand_more, "Развернуть панель") { setExpanded(!expanded) }
         compact.addView(expandButton, fixedWithStartMargin(48, 48, 4))
 
-        configureIconButton(closeButton, R.drawable.ic_close, actions::onClose)
+        configureIconButton(closeButton, R.drawable.ic_close, "Отключить панель", actions::onClose)
         compact.addView(closeButton, fixedWithStartMargin(48, 48, 4))
 
         details.orientation = LinearLayout.VERTICAL
+        details.minimumWidth = themed.dp(336f).toInt()
         details.visibility = View.GONE
         details.setPadding(themed.dp(10f).toInt(), themed.dp(8f).toInt(), themed.dp(10f).toInt(), themed.dp(8f).toInt())
         content.addView(details)
@@ -127,9 +129,24 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         android.transition.TransitionManager.beginDelayedTransition(root)
         expanded = value
         details.visibility = if (value) View.VISIBLE else View.GONE
-        expandButton.setIconResource(if (value) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
-        root.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, if (value) 244 else 88))
+        expandButton.contentDescription = if (value) "Свернуть панель" else "Развернуть панель"
+        expandButton.animate().rotation(if (value) 180f else 0f).setDuration(180).start()
+        val mode = glassMode(value, blurAvailable)
+        val alpha = when (mode) {
+            GlassMode.CompactBlur -> 118
+            GlassMode.ExpandedBlur -> 210
+            GlassMode.CompactOpaque -> 232
+            GlassMode.ExpandedOpaque -> 248
+        }
+        root.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, alpha))
         root.strokeColor = ColorUtils.setAlphaComponent(onSurface, if (value) 38 else 28)
+    }
+
+    fun setBlurAvailable(available: Boolean) {
+        blurAvailable = available
+        val current = expanded
+        expanded = !current
+        setExpanded(current)
     }
 
     private fun configureDragHandle() {
@@ -157,12 +174,13 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         button.setOnClickListener { it.nativeTap(); action() }
     }
 
-    private fun configureIconButton(button: MaterialButton, icon: Int, action: () -> Unit) {
+    private fun configureIconButton(button: MaterialButton, icon: Int, description: String, action: () -> Unit) {
         button.text = ""
         button.setIconResource(icon)
         button.iconTint = ColorStateList.valueOf(onSurface)
         button.iconPadding = 0
         button.iconSize = themed.dp(22f).toInt()
+        button.contentDescription = description
         button.cornerRadius = themed.dp(14f).toInt()
         button.insetTop = 0
         button.insetBottom = 0

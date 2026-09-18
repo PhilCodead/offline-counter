@@ -40,8 +40,8 @@ class ScrollTracker {
     }
 
     fun isAtTop(): Boolean =
-        itemCount > 0 && fromIndex <= 0 || maxScrollY > 0 && scrollY <= 0
+        (itemCount > 0 && fromIndex == 0) || (maxScrollY > 0 && scrollY == 0)
 
     fun isAtBottom(): Boolean =
-        itemCount > 0 && toIndex >= itemCount - 1 || maxScrollY > 0 && scrollY >= maxScrollY
+        (itemCount > 0 && toIndex == itemCount - 1) || (maxScrollY > 0 && scrollY >= maxScrollY)
 }
