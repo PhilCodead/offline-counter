@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Оффлайн-счётчик</string>
+    <string name="accessibility_description">Считывает видимые строки списка и автоматически прокручивает его для локального подсчёта.</string>
+    <string name="title">Оффлайн-счётчик</string>
+    <string name="subtitle">Подсчёт списка и экспорт в Excel</string>
+    <string name="instructions">1. Нажмите «Включить Accessibility».\n\n2. Откройте «Установленные приложения».\n\n3. Выберите «Оффлайн-счётчик».\n\n4. Включите переключатель и нажмите «Разрешить».\n\n5. Вернитесь в исходное приложение и используйте плавающее окно.</string>
+    <string name="enable_accessibility">Включить Accessibility</string>
+    <string name="close_app">Закрыть приложение</string>
+</resources>
