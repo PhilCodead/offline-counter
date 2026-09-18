@@ -15,5 +15,11 @@
     <string name="local_title">Конфиденциальность и экспорт</string>
     <string name="local_description">Подсчёт выполняется на устройстве. Интернет не используется, результаты сохраняются в Excel в папке «Загрузки».</string>
     <string name="confirm_clear">Нажмите «Очистить» ещё раз, чтобы удалить результаты</string>
-    <string name="confirm_disable">Нажмите закрытие ещё раз, чтобы отключить панель</string>
+    <string name="results_cleared">Результаты очищены</string>
+    <string name="open_list_first">Сначала откройте список для подсчёта</string>
+    <string name="count_complete">Подсчёт завершён</string>
+    <string name="export_saved">Excel сохранён в папку «Загрузки»</string>
+    <string name="export_failed">Не удалось сохранить Excel</string>
+    <string name="save_before_share">Сначала сохраните Excel</string>
+    <string name="share_excel">Передать Excel</string>
 </resources>

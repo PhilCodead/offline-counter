@@ -14,6 +14,7 @@ import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
+import androidx.annotation.StringRes
 
 class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions {
     private val handler = Handler(Looper.getMainLooper())
@@ -68,17 +69,17 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
 
     override fun onExport() {
         runCatching { ExcelExporter.export(this, controller.people) }
-            .onSuccess { lastExport = it; panel.setStatus("Excel сохранён", true); openExport(it) }
-            .onFailure { panel.setStatus("Не удалось сохранить Excel", true) }
+            .onSuccess { lastExport = it; showToast(R.string.export_saved); openExport(it) }
+            .onFailure { showToast(R.string.export_failed) }
     }
 
     override fun onShare() {
-        val uri = lastExport ?: return panel.setStatus("Сначала сохраните Excel", true)
+        val uri = lastExport ?: return showToast(R.string.save_before_share)
         startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
             type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }, "Передать Excel").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }, getString(R.string.share_excel)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     override fun onStopOrRecount() {
@@ -87,8 +88,8 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
 
     override fun onClear() {
         val now = SystemClock.elapsedRealtime()
-        if (now > clearConfirmationUntil) { clearConfirmationUntil = now + 3500; return panel.setStatus(getString(R.string.confirm_clear), true) }
-        handler.removeCallbacks(step); controller.clear(); render()
+        if (now > clearConfirmationUntil) { clearConfirmationUntil = now + 3500; return showToast(R.string.confirm_clear) }
+        handler.removeCallbacks(step); controller.clear(); render(); showToast(R.string.results_cleared)
     }
 
     override fun onClose() {
@@ -96,7 +97,7 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     }
 
     private fun startCount() {
-        targetPackage = lastPackage ?: return panel.setStatus("Сначала откройте список", true)
+        targetPackage = lastPackage ?: return showToast(R.string.open_list_first)
         scroll.reset(); controller.start(); render(); schedule(0)
     }
 
@@ -104,7 +105,7 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         val root = rootInActiveWindow
         if (root == null || root.packageName?.toString() != targetPackage) {
             val command = controller.onSourceUnavailable(); render()
-            if (command !is CountingCommand.Fail) schedule(250)
+            if (command is CountingCommand.Fail) showToast(command.message) else schedule(250)
             return
         }
         val snapshot = FrameSnapshot(parser.parse(root), scroll.isAtTop(), scroll.isAtBottom(), parser.fingerprint(root))
@@ -117,16 +118,19 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
             CountingCommand.ScrollBackward -> if (findScrollable(root)?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD) == true) schedule(180) else execute(controller.onFrame(FrameSnapshot(emptyList(), true, false, 0)), root)
             CountingCommand.ScrollForward -> if (findScrollable(root)?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD) == true) schedule(220) else execute(controller.onFrame(FrameSnapshot(emptyList(), false, true, 0)), root)
             CountingCommand.Wait -> schedule(90)
-            CountingCommand.Complete -> { render(); Toast.makeText(this, "Готово", Toast.LENGTH_SHORT).show() }
-            is CountingCommand.Fail -> render()
+            CountingCommand.Complete -> { render(); showToast(R.string.count_complete) }
+            is CountingCommand.Fail -> { render(); showToast(command.message) }
         }
     }
 
     private fun render() {
         val state = controller.state
         panel.update(state.total, state.women, state.men, state.phase in setOf(CountingPhase.Rewinding, CountingPhase.Collecting))
-        if (state.status.isNotEmpty()) panel.setStatus(state.status, state.phase == CountingPhase.Error)
+        if (state.status.isNotEmpty()) panel.setStatus(state.status)
     }
+
+    private fun showToast(@StringRes message: Int) = showToast(getString(message))
+    private fun showToast(message: String) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 
     private fun schedule(delay: Long) { handler.removeCallbacks(step); handler.postDelayed(step, delay) }
     private fun findScrollable(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
