@@ -6,4 +6,6 @@
     <string name="instructions">1. Нажмите «Включить Accessibility».\n\n2. Откройте «Установленные приложения».\n\n3. Выберите «Оффлайн-счётчик».\n\n4. Включите переключатель и нажмите «Разрешить».\n\n5. Вернитесь в исходное приложение и используйте плавающее окно.</string>
     <string name="enable_accessibility">Включить Accessibility</string>
     <string name="close_app">Закрыть приложение</string>
+    <string name="developer_logo">Kerimli Systems</string>
+    <string name="version_format">Версия %1$s</string>
 </resources>

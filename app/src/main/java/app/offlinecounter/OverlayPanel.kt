@@ -12,7 +12,6 @@ import android.widget.TextView
 import androidx.core.graphics.ColorUtils
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
-import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.MaterialColors
 
 class OverlayPanel(context: Context, private val actions: Actions) {
@@ -25,10 +24,11 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         fun onClose()
     }
 
-    private val themed = DynamicColors.wrapContextIfAvailable(ContextThemeWrapper(context, R.style.Theme_OfflineCounter_Overlay))
+    private val themed = ContextThemeWrapper(context, R.style.Theme_OfflineCounter_Overlay)
     private val surface = MaterialColors.getColor(themed, com.google.android.material.R.attr.colorSurface, Color.rgb(24, 31, 43))
     private val onSurface = MaterialColors.getColor(themed, com.google.android.material.R.attr.colorOnSurface, Color.WHITE)
     private val primary = MaterialColors.getColor(themed, com.google.android.material.R.attr.colorPrimary, Color.rgb(37, 99, 235))
+    private val secondary = MaterialColors.getColor(themed, com.google.android.material.R.attr.colorSecondary, Color.rgb(26, 175, 172))
 
     val root = MaterialCardView(themed)
     val dragHandle = ImageButton(themed)
@@ -70,7 +70,7 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         configureTextButton(countButton, "Подсчёт", primary, actions::onCount)
         compact.addView(countButton, wrapWithStartMargin(2))
 
-        configureTextButton(excelButton, "В Excel", Color.rgb(5, 150, 105), actions::onExport)
+        configureTextButton(excelButton, "В Excel", secondary, actions::onExport)
         compact.addView(excelButton, wrapWithStartMargin(4))
 
         configureIconButton(shareButton, R.drawable.ic_share, actions::onShare)
