@@ -33,6 +33,8 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     private var targetPackage: String? = null
     private var lastExport: Uri? = null
     private var clearConfirmationUntil = 0L
+    private var anchoredEdge: OverlayEdge? = null
+    private var dragging = false
 
     override fun onServiceConnected() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -50,6 +52,10 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
             y = dp(180)
         }
         panel.dragHandle.setOnTouchListener(DragListener())
+        panel.root.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            val sizeChanged = right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop
+            if (sizeChanged) reanchorAfterResize()
+        }
         windowManager.addView(panel.root, params)
         overlayNotice = OverlayNotice(this, windowManager, handler)
         noticeDispatcher = NoticeDispatcher(::showSystemToast, overlayNotice::show)
@@ -123,6 +129,7 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         }
         handler.removeCallbacks(step)
         controller.clear()
+        panel.collapse()
         render()
         notifyUser(R.string.results_cleared)
     }
@@ -236,8 +243,8 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     private fun bounds() = OverlayBounds(
         width = resources.displayMetrics.widthPixels,
         height = resources.displayMetrics.heightPixels,
-        panelWidth = panel.root.measuredWidth.coerceAtLeast(dp(280)),
-        panelHeight = panel.root.measuredHeight.coerceAtLeast(dp(68)),
+        panelWidth = panel.root.measuredWidth.coerceAtLeast(1),
+        panelHeight = panel.root.measuredHeight.coerceAtLeast(1),
         insetTop = dp(24),
         insetBottom = dp(32),
     )
@@ -246,7 +253,22 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         val (saved, edge) = preferences.load()
         val bounds = bounds()
         val position = OverlayPlacement.denormalize(saved, bounds)
-        params.x = if (edge == OverlayEdge.Start) 0 else bounds.width - bounds.panelWidth
+        anchoredEdge = edge
+        params.x = OverlayPlacement.xForEdge(edge, bounds)
+        params.y = position.y
+        updateWindow()
+    }
+
+    private fun reanchorAfterResize() {
+        val edge = anchoredEdge ?: return
+        if (dragging) return
+        val bounds = bounds()
+        val position = OverlayPlacement.clamp(
+            OverlayPosition(OverlayPlacement.xForEdge(edge, bounds), params.y),
+            bounds,
+        )
+        if (params.x == position.x && params.y == position.y) return
+        params.x = position.x
         params.y = position.y
         updateWindow()
     }
@@ -273,6 +295,8 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         override fun onTouch(view: View, event: MotionEvent): Boolean {
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    dragging = true
+                    anchoredEdge = null
                     start = OverlayPosition(params.x, params.y)
                     touchX = event.rawX
                     touchY = event.rawY
@@ -299,10 +323,12 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         }
 
         private fun finishDrag(view: View) {
+            dragging = false
             val b = bounds()
             val p = OverlayPlacement.clamp(OverlayPosition(params.x, params.y), b)
             val edge = OverlayPlacement.nearestEdge(p, b)
-            params.x = if (edge == OverlayEdge.Start) 0 else b.width - b.panelWidth
+            anchoredEdge = edge
+            params.x = OverlayPlacement.xForEdge(edge, b)
             params.y = p.y
             updateWindow()
             view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)

@@ -18,6 +18,11 @@ data class NormalizedPosition(val x: Float, val y: Float)
 enum class OverlayEdge { Start, End }
 
 object OverlayPlacement {
+    fun xForEdge(edge: OverlayEdge, bounds: OverlayBounds): Int = when (edge) {
+        OverlayEdge.Start -> 0
+        OverlayEdge.End -> max(0, bounds.width - bounds.panelWidth)
+    }
+
     fun clamp(position: OverlayPosition, bounds: OverlayBounds): OverlayPosition = OverlayPosition(
         position.x.coerceIn(0, max(0, bounds.width - bounds.panelWidth)),
         position.y.coerceIn(

@@ -61,8 +61,7 @@ class OverlayPanel(context: Context, private val actions: Actions) {
     init {
         root.radius = themed.dp(18f)
         root.cardElevation = themed.dp(7f)
-        root.strokeWidth = themed.dp(1f).toInt()
-        root.strokeColor = ColorUtils.setAlphaComponent(onSurface, 28)
+        root.strokeWidth = 0
         root.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, 232))
         root.clipToOutline = true
 
@@ -104,7 +103,6 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         compact.addView(closeButton, fixedWithStartMargin(48, 48, 4))
 
         details.orientation = LinearLayout.VERTICAL
-        details.minimumWidth = themed.dp(336f).toInt()
         details.visibility = View.GONE
         details.setPadding(
             themed.dp(10f).toInt(),
@@ -175,8 +173,9 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         expandButton.animate().rotation(if (value) 180f else 0f).setDuration(180).start()
         val alpha = if (value) 248 else 232
         root.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, alpha))
-        root.strokeColor = ColorUtils.setAlphaComponent(onSurface, if (value) 38 else 28)
     }
+
+    fun collapse() = setExpanded(false)
 
     private fun setDataActionsVisible(visible: Boolean) {
         if (dataActionsVisible == visible) return

@@ -7,6 +7,8 @@ import android.os.Handler
 import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.WindowManager
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.widget.TextView
 import androidx.core.graphics.ColorUtils
 import com.google.android.material.card.MaterialCardView
@@ -48,18 +50,27 @@ class OverlayNotice(
         y = dp(96)
     }
     private var attached = false
+    private var animationGeneration = 0
 
     fun show(message: String) {
         handler.removeCallbacks(dismiss)
+        animationGeneration++
+        card.animate().setListener(null).withEndAction(null).cancel()
         textView.text = message
         if (!attached) {
             windowManager.addView(card, layoutParams)
             attached = true
+            card.alpha = 0f
+            card.scaleX = 0.96f
+            card.scaleY = 0.96f
         }
-        card.alpha = 0f
-        card.scaleX = 0.94f
-        card.scaleY = 0.94f
-        card.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(180).start()
+        card.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setInterpolator(DecelerateInterpolator())
+            .setDuration(180)
+            .start()
         handler.postDelayed(dismiss, DISPLAY_DURATION_MS)
     }
 
@@ -71,13 +82,15 @@ class OverlayNotice(
 
     private fun hide() {
         if (!attached) return
+        val generation = ++animationGeneration
+        card.animate().setListener(null).withEndAction(null).cancel()
         card.animate()
             .alpha(0f)
-            .scaleX(0.96f)
-            .scaleY(0.96f)
-            .setDuration(160)
+            .setInterpolator(AccelerateInterpolator())
+            .setDuration(220)
             .withEndAction {
-                if (attached) runCatching { windowManager.removeView(card) }
+                if (generation != animationGeneration || !attached) return@withEndAction
+                runCatching { windowManager.removeViewImmediate(card) }
                 attached = false
             }
             .start()
