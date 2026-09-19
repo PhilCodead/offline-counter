@@ -68,6 +68,18 @@ class CountingControllerTest {
     }
 
     @Test
+    fun unchangedViewportWaitsForRenderingBeforeRetryingTheScroll() {
+        controller.start()
+        controller.onFrame(frame(atTop = true, fingerprint = 1))
+
+        assertEquals(CountingCommand.ScrollForward, controller.onFrame(frame(fingerprint = 2)))
+        repeat(5) {
+            assertEquals(CountingCommand.Wait, controller.onFrame(frame(fingerprint = 2)))
+        }
+        assertEquals(CountingCommand.ScrollForward, controller.onFrame(frame(fingerprint = 2)))
+    }
+
+    @Test
     fun repeatedUnavailableFramesEndWithRecoverableError() {
         controller.start()
         repeat(20) { controller.onSourceUnavailable() }
