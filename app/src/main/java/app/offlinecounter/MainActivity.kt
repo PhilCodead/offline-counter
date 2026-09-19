@@ -66,10 +66,9 @@ class MainActivity : AppCompatActivity() {
         guideExpanded = expanded
         TransitionManager.beginDelayedTransition(rootContent)
         setupGuide.visibility = if (expanded) View.VISIBLE else View.GONE
-        serviceExpandIcon.animate()
-            .rotation(if (expanded) 180f else 0f)
-            .setDuration(180)
-            .start()
+        serviceExpandIcon.setImageResource(
+            if (expanded) R.drawable.ic_expand_less else R.drawable.ic_expand_more,
+        )
         serviceCard.contentDescription = getString(
             if (expanded) R.string.collapse_setup_guide else R.string.expand_setup_guide,
         )

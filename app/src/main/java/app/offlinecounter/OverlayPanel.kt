@@ -164,7 +164,7 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         expandButton.contentDescription = themed.getString(
             if (value) R.string.overlay_collapse else R.string.overlay_expand,
         )
-        expandButton.animate().rotation(if (value) 180f else 0f).setDuration(180).start()
+        expandButton.setIconResource(if (value) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
         val alpha = if (value) 248 else 232
         root.background = panelBackground(alpha)
         root.requestLayout()

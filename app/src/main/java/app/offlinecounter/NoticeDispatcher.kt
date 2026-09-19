@@ -5,7 +5,7 @@ class NoticeDispatcher(
     private val overlayChannel: (String) -> Unit,
 ) {
     fun show(message: String) {
-        systemChannel(message)
-        overlayChannel(message)
+        runCatching { overlayChannel(message) }
+            .onFailure { systemChannel(message) }
     }
 }

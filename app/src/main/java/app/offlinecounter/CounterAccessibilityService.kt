@@ -2,6 +2,7 @@ package app.offlinecounter
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
+import android.content.ClipData
 import android.graphics.PixelFormat
 import android.net.Uri
 import android.os.Handler
@@ -273,9 +274,18 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     private fun openExport(uri: Uri) {
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, EXCEL_MIME_TYPE)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            clipData = ClipData.newRawUri("Excel", uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        runCatching { startActivity(intent) }
+        if (intent.resolveActivity(packageManager) == null) {
+            notifyUser(R.string.excel_viewer_missing)
+            return
+        }
+        val chooser = Intent.createChooser(intent, getString(R.string.open_excel)).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        runCatching { startActivity(chooser) }
+            .onFailure { notifyUser(R.string.excel_open_failed) }
     }
 
     private inner class DragListener : View.OnTouchListener {

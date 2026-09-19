@@ -35,4 +35,7 @@
     <string name="overlay_recount">Пересчитать</string>
     <string name="overlay_clear">Очистить</string>
     <string name="overlay_move">Переместить панель</string>
+    <string name="open_excel">Открыть таблицу</string>
+    <string name="excel_viewer_missing">Файл сохранён. Для открытия нужно приложение, поддерживающее XLSX</string>
+    <string name="excel_open_failed">Файл сохранён, но открыть его не удалось</string>
 </resources>

@@ -13,8 +13,8 @@ class ProjectInvariantTest {
 
         assertTrue(buildScript.contains("namespace = \"app.offlinecounter\""))
         assertTrue(buildScript.contains("applicationId = \"app.offlinecounter\""))
-        assertTrue(buildScript.contains("versionCode = 18"))
-        assertTrue(buildScript.contains("versionName = \"0.18\""))
+        assertTrue(buildScript.contains("versionCode = 19"))
+        assertTrue(buildScript.contains("versionName = \"0.19\""))
         assertFalse(manifest.contains("android.permission.INTERNET"))
         assertTrue(manifest.contains(".CounterAccessibilityService"))
         assertTrue(manifest.split("android:icon=\"@mipmap/ic_launcher\"").size - 1 >= 3)
