@@ -21,6 +21,7 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     private val parser = PersonParser()
     private val scroll = ScrollTracker()
     private val controller = CountingController()
+    private val clearConfirmation = ClearConfirmation(CLEAR_CONFIRMATION_WINDOW_MS)
     private val step = Runnable(::runCycle)
 
     private lateinit var windowManager: WindowManager
@@ -32,7 +33,6 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     private var lastPackage: String? = null
     private var targetPackage: String? = null
     private var lastExport: Uri? = null
-    private var clearConfirmationUntil = 0L
     private var anchoredEdge: OverlayEdge? = null
     private var dragging = false
 
@@ -122,8 +122,7 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
 
     override fun onClear() {
         val now = SystemClock.elapsedRealtime()
-        if (now > clearConfirmationUntil) {
-            clearConfirmationUntil = now + CLEAR_CONFIRMATION_WINDOW_MS
+        if (!clearConfirmation.confirm(now)) {
             notifyUser(R.string.confirm_clear)
             return
         }
