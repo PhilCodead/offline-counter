@@ -5,6 +5,11 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 3
+    ignore:
+      - dependency-name: "androidx.core:core-ktx"
+        versions: ["1.19.0"]
+      - dependency-name: "org.jetbrains.kotlin.android"
+        versions: ["2.4.20"]
     groups:
       android:
         patterns: ["androidx.*", "com.google.android.material"]

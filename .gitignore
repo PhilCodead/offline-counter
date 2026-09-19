@@ -20,3 +20,6 @@ final-artifact/
 *.key
 credentials.json
 service-account*.json
+
+*-PRIVATE.zip
+*-PRIVATE.txt
