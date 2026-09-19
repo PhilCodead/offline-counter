@@ -13,3 +13,10 @@ local.properties
 *.aab
 signing-private/
 final-artifact/
+.env
+.env.*
+!.env.example
+*.pfx
+*.key
+credentials.json
+service-account*.json
