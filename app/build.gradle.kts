@@ -11,8 +11,8 @@ android {
         applicationId = "app.offlinecounter"
         minSdk = 29
         targetSdk = 35
-        versionCode = 21
-        versionName = "1.0.0"
+        versionCode = 22
+        versionName = "1.0.1"
     }
 
     buildFeatures {

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <path android:pathData="M264,356a42,42 0,1 0,0 84a42,42 0,1 0,0 -84M264,448C222,448 197,477 197,499Q197,516 214,516H314Q331,516 331,499C331,477 306,448 264,448M264,536a42,42 0,1 0,0 84a42,42 0,1 0,0 -84M264,628C222,628 197,657 197,679Q197,696 214,696H314Q331,696 331,679C331,657 306,628 264,628M264,708a42,42 0,1 0,0 84a42,42 0,1 0,0 -84M264,800C222,800 197,829 197,851Q197,868 214,868H314Q331,868 331,851C331,829 306,800 264,800">
+        <aapt:attr name="android:fillColor">
+            <gradient android:startX="200" android:startY="350"
+                android:endX="330" android:endY="870"
+                android:startColor="#FFFFFF" android:endColor="#CBDCFF"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+    <path android:pathData="M404,408H736a31,31 0,0 1,0 62H404a31,31 0,0 1,0 -62M404,570H736a31,31 0,0 1,0 62H404a31,31 0,0 1,0 -62M404,740H736a31,31 0,0 1,0 62H404a31,31 0,0 1,0 -62">
+        <aapt:attr name="android:fillColor">
+            <gradient android:startX="373" android:startY="400"
+                android:endX="767" android:endY="800"
+                android:startColor="#A7C1EC" android:endColor="#4665C5"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+    <path android:pathData="M664,202H771C851,202 910,260 910,335S851,470 771,470H664C584,470 530,412 530,337S584,202 664,202Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:startX="570" android:startY="205"
+                android:endX="867" android:endY="459"
+                android:startColor="#5EAEFF" android:endColor="#204AEF"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+    <path android:pathData="M640,306L674,280V390M720,301C725,270 783,267 792,299C803,333 757,354 726,390H797"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="24"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

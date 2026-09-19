@@ -3,11 +3,6 @@
     <item
         android:width="72dp"
         android:height="72dp"
-        android:gravity="center">
-        <bitmap
-            android:antialias="true"
-            android:filter="true"
-            android:gravity="fill"
-            android:src="@drawable/ic_launcher_artwork" />
-    </item>
+        android:gravity="center"
+        android:drawable="@drawable/ic_launcher_artwork" />
 </layer-list>
