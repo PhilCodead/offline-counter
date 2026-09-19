@@ -27,6 +27,8 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     private lateinit var panel: OverlayPanel
     private lateinit var params: WindowManager.LayoutParams
     private lateinit var preferences: OverlayPreferences
+    private lateinit var overlayNotice: OverlayNotice
+    private lateinit var noticeDispatcher: NoticeDispatcher
     private var lastPackage: String? = null
     private var targetPackage: String? = null
     private var lastExport: Uri? = null
@@ -45,6 +47,8 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         ).apply { gravity = Gravity.TOP or Gravity.START; x = 0; y = dp(180) }
         panel.dragHandle.setOnTouchListener(DragListener())
         windowManager.addView(panel.root, params)
+        overlayNotice = OverlayNotice(this, windowManager, handler)
+        noticeDispatcher = NoticeDispatcher(::showSystemToast, overlayNotice::show)
         panel.root.post(::restorePosition)
         render()
     }
@@ -61,6 +65,7 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
+        if (::overlayNotice.isInitialized) overlayNotice.destroy()
         if (::panel.isInitialized) runCatching { windowManager.removeView(panel.root) }
         super.onDestroy()
     }
@@ -69,12 +74,12 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
 
     override fun onExport() {
         runCatching { ExcelExporter.export(this, controller.people) }
-            .onSuccess { lastExport = it; showToast(R.string.export_saved); openExport(it) }
-            .onFailure { showToast(R.string.export_failed) }
+            .onSuccess { lastExport = it; notifyUser(R.string.export_saved); openExport(it) }
+            .onFailure { notifyUser(R.string.export_failed) }
     }
 
     override fun onShare() {
-        val uri = lastExport ?: return showToast(R.string.save_before_share)
+        val uri = lastExport ?: return notifyUser(R.string.save_before_share)
         startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
             type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             putExtra(Intent.EXTRA_STREAM, uri)
@@ -88,8 +93,8 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
 
     override fun onClear() {
         val now = SystemClock.elapsedRealtime()
-        if (now > clearConfirmationUntil) { clearConfirmationUntil = now + 3500; return showToast(R.string.confirm_clear) }
-        handler.removeCallbacks(step); controller.clear(); render(); showToast(R.string.results_cleared)
+        if (now > clearConfirmationUntil) { clearConfirmationUntil = now + 3500; return notifyUser(R.string.confirm_clear) }
+        handler.removeCallbacks(step); controller.clear(); render(); notifyUser(R.string.results_cleared)
     }
 
     override fun onClose() {
@@ -97,7 +102,7 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     }
 
     private fun startCount() {
-        targetPackage = lastPackage ?: return showToast(R.string.open_list_first)
+        targetPackage = lastPackage ?: return notifyUser(R.string.open_list_first)
         scroll.reset(); controller.start(); render(); schedule(0)
     }
 
@@ -105,7 +110,7 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         val root = rootInActiveWindow
         if (root == null || root.packageName?.toString() != targetPackage) {
             val command = controller.onSourceUnavailable(); render()
-            if (command is CountingCommand.Fail) showToast(command.message) else schedule(250)
+            if (command is CountingCommand.Fail) notifyUser(command.message) else schedule(250)
             return
         }
         val snapshot = FrameSnapshot(parser.parse(root), scroll.isAtTop(), scroll.isAtBottom(), parser.fingerprint(root))
@@ -118,8 +123,8 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
             CountingCommand.ScrollBackward -> if (findScrollable(root)?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD) == true) schedule(180) else execute(controller.onFrame(FrameSnapshot(emptyList(), true, false, 0)), root)
             CountingCommand.ScrollForward -> if (findScrollable(root)?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD) == true) schedule(220) else execute(controller.onFrame(FrameSnapshot(emptyList(), false, true, 0)), root)
             CountingCommand.Wait -> schedule(90)
-            CountingCommand.Complete -> { render(); showToast(R.string.count_complete) }
-            is CountingCommand.Fail -> { render(); showToast(command.message) }
+            CountingCommand.Complete -> { render(); notifyUser(R.string.count_complete) }
+            is CountingCommand.Fail -> { render(); notifyUser(command.message) }
         }
     }
 
@@ -129,8 +134,19 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         if (state.status.isNotEmpty()) panel.setStatus(state.status)
     }
 
-    private fun showToast(@StringRes message: Int) = showToast(getString(message))
-    private fun showToast(message: String) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    private fun notifyUser(@StringRes message: Int) = notifyUser(getString(message))
+
+    private fun notifyUser(message: String) {
+        if (::noticeDispatcher.isInitialized) {
+            noticeDispatcher.show(message)
+        } else {
+            showSystemToast(message)
+        }
+    }
+
+    private fun showSystemToast(message: String) {
+        Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
+    }
 
     private fun schedule(delay: Long) { handler.removeCallbacks(step); handler.postDelayed(step, delay) }
     private fun findScrollable(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {

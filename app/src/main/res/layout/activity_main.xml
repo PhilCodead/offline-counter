@@ -167,23 +167,30 @@
             android:layout_weight="1"
             android:minHeight="40dp" />
 
-        <ImageView
-            android:layout_width="168dp"
-            android:layout_height="64dp"
-            android:layout_gravity="center_horizontal"
-            android:alpha="0.92"
-            android:contentDescription="@string/developer_logo"
-            android:scaleType="fitCenter"
-            android:src="@drawable/kerimli_systems_logo" />
-
-        <TextView
-            android:id="@+id/versionText"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:id="@+id/developerFooter"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="2dp"
-            android:letterSpacing="0.02"
-            android:textAppearance="?attr/textAppearanceLabelSmall"
-            android:textColor="?attr/colorOnSurfaceVariant" />
+            android:layout_marginBottom="56dp"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="168dp"
+                android:layout_height="64dp"
+                android:alpha="0.92"
+                android:contentDescription="@string/developer_logo"
+                android:scaleType="fitCenter"
+                android:src="@drawable/kerimli_systems_logo" />
+
+            <TextView
+                android:id="@+id/versionText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:letterSpacing="0.02"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

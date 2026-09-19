@@ -8,6 +8,8 @@ import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.transition.AutoTransition
+import android.transition.TransitionManager
 import androidx.core.graphics.ColorUtils
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -42,6 +44,7 @@ class OverlayPanel(context: Context, private val actions: Actions) {
     private val stopButton = MaterialButton(themed)
     private val clearButton = MaterialButton(themed)
     private var expanded = false
+    private var dataActionsVisible = false
 
     init {
         root.radius = themed.dp(18f)
@@ -70,9 +73,11 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         compact.addView(countButton, wrapWithStartMargin(2))
 
         configureTextButton(excelButton, themed.getString(R.string.overlay_export), secondary, actions::onExport)
+        excelButton.visibility = View.GONE
         compact.addView(excelButton, wrapWithStartMargin(4))
 
         configureIconButton(shareButton, R.drawable.ic_share, themed.getString(R.string.share_excel), actions::onShare)
+        shareButton.visibility = View.GONE
         compact.addView(shareButton, fixedWithStartMargin(48, 48, 4))
 
         configureIconButton(expandButton, R.drawable.ic_expand_more, themed.getString(R.string.overlay_expand)) { setExpanded(!expanded) }
@@ -112,6 +117,7 @@ class OverlayPanel(context: Context, private val actions: Actions) {
     }
 
     fun update(total: Int, women: Int, men: Int, collecting: Boolean) {
+        setDataActionsVisible(OverlayPresentation.forTotal(total).showDataActions)
         countButton.text = if (collecting || total > 0) themed.getString(R.string.overlay_total, total) else themed.getString(R.string.overlay_count)
         totalsText.text = themed.getString(R.string.overlay_totals, total, women, men)
         stopButton.text = themed.getString(if (collecting) R.string.overlay_stop else R.string.overlay_recount)
@@ -124,7 +130,7 @@ class OverlayPanel(context: Context, private val actions: Actions) {
 
     fun setExpanded(value: Boolean) {
         if (expanded == value) return
-        android.transition.TransitionManager.beginDelayedTransition(root)
+        TransitionManager.beginDelayedTransition(root)
         expanded = value
         details.visibility = if (value) View.VISIBLE else View.GONE
         expandButton.contentDescription = themed.getString(if (value) R.string.overlay_collapse else R.string.overlay_expand)
@@ -136,6 +142,15 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         }
         root.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, alpha))
         root.strokeColor = ColorUtils.setAlphaComponent(onSurface, if (value) 38 else 28)
+    }
+
+    private fun setDataActionsVisible(visible: Boolean) {
+        if (dataActionsVisible == visible) return
+        dataActionsVisible = visible
+        TransitionManager.beginDelayedTransition(root, AutoTransition().setDuration(220))
+        excelButton.visibility = if (visible) View.VISIBLE else View.GONE
+        shareButton.visibility = if (visible) View.VISIBLE else View.GONE
+        root.requestLayout()
     }
 
     private fun configureDragHandle() {
