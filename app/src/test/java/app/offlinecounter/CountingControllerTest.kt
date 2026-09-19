@@ -1,6 +1,7 @@
 package app.offlinecounter
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 class CountingControllerTest {
@@ -57,12 +58,11 @@ class CountingControllerTest {
 
         val firstPerson = Person("Анна Смирнова", "01.01.1990", "Ж", "")
 
-        var command: CountingCommand = CountingCommand.Wait
         repeat(20) {
-            command = controller.onFrame(frame(people = listOf(firstPerson), fingerprint = 2))
+            val command = controller.onFrame(frame(people = listOf(firstPerson), fingerprint = 2))
+            assertNotEquals(CountingCommand.Complete, command)
         }
 
-        assertEquals(CountingCommand.ScrollForward, command)
         assertEquals(CountingPhase.Collecting, controller.state.phase)
         assertEquals(1, controller.state.total)
     }

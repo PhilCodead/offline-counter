@@ -7,6 +7,8 @@ class CountingController {
     private var rewindSteps = 0
     private var scrollSteps = 0
     private var unavailableTicks = 0
+    private var lastScrollFingerprint: Int? = null
+    private var unchangedViewportFrames = 0
 
     var state = OverlayUiState()
         private set
@@ -19,6 +21,8 @@ class CountingController {
         rewindSteps = 0
         scrollSteps = 0
         unavailableTicks = 0
+        lastScrollFingerprint = null
+        unchangedViewportFrames = 0
         state = OverlayUiState(phase = CountingPhase.Rewinding, status = "Возврат к началу списка…", expanded = false)
         return CountingCommand.ScrollBackward
     }
@@ -69,6 +73,14 @@ class CountingController {
             state = state.copy(phase = CountingPhase.Completed, status = "Готово")
             return CountingCommand.Complete
         }
+        if (frame.fingerprint == lastScrollFingerprint) {
+            unchangedViewportFrames++
+            if (unchangedViewportFrames <= MAX_UNCHANGED_VIEWPORT_FRAMES) return CountingCommand.Wait
+            unchangedViewportFrames = 0
+        } else {
+            lastScrollFingerprint = frame.fingerprint
+            unchangedViewportFrames = 0
+        }
         if (scrollSteps >= MAX_SCROLL_STEPS) {
             val message = "Не удалось определить конец списка — попробуйте снова"
             state = state.copy(phase = CountingPhase.Error, status = message, expanded = true)
@@ -89,6 +101,7 @@ class CountingController {
     private companion object {
         const val MAX_REWIND_STEPS = 350
         const val MAX_SCROLL_STEPS = 1000
+        const val MAX_UNCHANGED_VIEWPORT_FRAMES = 5
         const val MAX_UNAVAILABLE_TICKS = 20
     }
 }
