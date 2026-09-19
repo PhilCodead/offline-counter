@@ -26,12 +26,6 @@ class OverlayPlacementTest {
     }
 
     @Test
-    fun choosesNearestHorizontalEdge() {
-        assertEquals(OverlayEdge.Start, OverlayPlacement.nearestEdge(OverlayPosition(100, 500), bounds))
-        assertEquals(OverlayEdge.End, OverlayPlacement.nearestEdge(OverlayPosition(450, 500), bounds))
-    }
-
-    @Test
     fun keepsSelectedEdgeWhenPanelWidthChanges() {
         val compact = bounds.copy(panelWidth = 300)
         val expanded = bounds.copy(panelWidth = 760)

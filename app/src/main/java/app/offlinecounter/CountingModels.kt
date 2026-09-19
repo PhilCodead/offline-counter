@@ -21,5 +21,4 @@ data class OverlayUiState(
     val women: Int = 0,
     val men: Int = 0,
     val status: String = "",
-    val expanded: Boolean = false,
 )

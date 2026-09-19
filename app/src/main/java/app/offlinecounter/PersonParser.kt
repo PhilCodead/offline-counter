@@ -10,12 +10,6 @@ class PersonParser {
         return FrameSnapshot(parse(text), text.fold(1) { hash, value -> 31 * hash + value.hashCode() })
     }
 
-    fun parse(root: AccessibilityNodeInfo): List<Person> {
-        val text = ArrayList<String>(64)
-        collectText(root, text)
-        return parse(text)
-    }
-
     internal fun parse(text: List<String>): List<Person> {
         val result = ArrayList<Person>()
         text.forEachIndexed { index, raw ->
@@ -43,14 +37,6 @@ class PersonParser {
             result += Person(fio.trim().split(Regex("\\s+")).joinToString(" "), birthDate, sex, status)
         }
         return result
-    }
-
-    fun fingerprint(root: AccessibilityNodeInfo): Int {
-        var hash = 1
-        val text = ArrayList<String>(64)
-        collectText(root, text)
-        for (value in text) hash = 31 * hash + value.hashCode()
-        return hash
     }
 
     private fun findPreviousName(text: List<String>, index: Int): String? {

@@ -84,10 +84,6 @@ class CountingController {
         state = OverlayUiState(status = "Очищено")
     }
 
-    fun setExpanded(expanded: Boolean) {
-        state = state.copy(expanded = expanded)
-    }
-
     fun onSourceUnavailable(): CountingCommand {
         unavailableTicks++
         return if (unavailableTicks < 20) CountingCommand.Wait
@@ -109,7 +105,7 @@ class CountingController {
 
     private fun fail(message: String): CountingCommand {
         pendingScroll = null
-        state = state.copy(phase = CountingPhase.Error, status = message, expanded = true)
+        state = state.copy(phase = CountingPhase.Error, status = message)
         return CountingCommand.Fail(message)
     }
 }

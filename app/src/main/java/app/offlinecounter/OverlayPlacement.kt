@@ -38,9 +38,6 @@ object OverlayPlacement {
         ),
     )
 
-    fun nearestEdge(position: OverlayPosition, bounds: OverlayBounds): OverlayEdge =
-        if (position.x <= (bounds.width - bounds.panelWidth) / 2) OverlayEdge.Start else OverlayEdge.End
-
     fun normalize(position: OverlayPosition, bounds: OverlayBounds): NormalizedPosition {
         val clamped = clamp(position, bounds)
         val maxX = max(1, bounds.width - bounds.panelWidth)

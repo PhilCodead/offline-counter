@@ -11,12 +11,21 @@ android {
         applicationId = "app.offlinecounter"
         minSdk = 29
         targetSdk = 35
-        versionCode = 20
-        versionName = "0.20"
+        versionCode = 21
+        versionName = "1.0.0"
     }
 
     buildFeatures {
         buildConfig = true
+    }
+
+    buildTypes {
+        release {
+            isDebuggable = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+        }
     }
 
     compileOptions {

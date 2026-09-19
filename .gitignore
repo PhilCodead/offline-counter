@@ -5,3 +5,11 @@
 build/
 local.properties
 **/build/
+*.jks
+*.keystore
+*.p12
+*.password
+*.apk
+*.aab
+signing-private/
+final-artifact/

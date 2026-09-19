@@ -6,6 +6,13 @@ import org.junit.Test
 
 class ClearConfirmationTest {
     @Test
+    fun firstTapAtBootTimeRequiresConfirmation() {
+        val confirmation = ClearConfirmation(windowMs = 3_500L)
+        assertFalse(confirmation.confirm(now = 0L))
+        assertTrue(confirmation.confirm(now = 1L))
+    }
+
+    @Test
     fun successfulConfirmationIsConsumed() {
         val confirmation = ClearConfirmation(windowMs = 3_500L)
 
