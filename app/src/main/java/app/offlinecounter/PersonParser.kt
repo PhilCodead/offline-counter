@@ -4,6 +4,12 @@ import android.view.accessibility.AccessibilityNodeInfo
 import java.util.Locale
 
 class PersonParser {
+    fun snapshot(root: AccessibilityNodeInfo): FrameSnapshot {
+        val text = ArrayList<String>(64)
+        collectText(root, text)
+        return FrameSnapshot(parse(text), text.fold(1) { hash, value -> 31 * hash + value.hashCode() })
+    }
+
     fun parse(root: AccessibilityNodeInfo): List<Person> {
         val text = ArrayList<String>(64)
         collectText(root, text)

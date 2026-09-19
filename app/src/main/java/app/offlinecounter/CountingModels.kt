@@ -12,8 +12,6 @@ sealed interface CountingCommand {
 
 data class FrameSnapshot(
     val people: List<Person>,
-    val atTop: Boolean,
-    val atBottom: Boolean,
     val fingerprint: Int,
 )
 

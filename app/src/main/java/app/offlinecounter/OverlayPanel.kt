@@ -3,8 +3,7 @@ package app.offlinecounter
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.transition.AutoTransition
-import android.transition.TransitionManager
+import android.graphics.drawable.GradientDrawable
 import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.View
@@ -12,7 +11,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.graphics.ColorUtils
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.card.MaterialCardView
 import com.google.android.material.color.MaterialColors
 
 class OverlayPanel(context: Context, private val actions: Actions) {
@@ -26,14 +24,8 @@ class OverlayPanel(context: Context, private val actions: Actions) {
     }
 
     private val themed = ContextThemeWrapper(context, R.style.Theme_OfflineCounter_Overlay)
-    private val surface = themed.materialColor(
-        com.google.android.material.R.attr.colorSurface,
-        Color.rgb(24, 31, 43),
-    )
-    private val onSurface = themed.materialColor(
-        com.google.android.material.R.attr.colorOnSurface,
-        Color.WHITE,
-    )
+    private val surface = Color.rgb(30, 38, 49)
+    private val onSurface = Color.rgb(245, 247, 250)
     private val primary = themed.materialColor(
         com.google.android.material.R.attr.colorPrimary,
         Color.rgb(37, 99, 235),
@@ -43,7 +35,7 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         Color.rgb(26, 175, 172),
     )
 
-    val root = MaterialCardView(themed)
+    val root = LinearLayout(themed)
     val dragHandle = DragHandleButton(themed)
     private val countButton = MaterialButton(themed)
     private val excelButton = MaterialButton(themed)
@@ -59,10 +51,10 @@ class OverlayPanel(context: Context, private val actions: Actions) {
     private var dataActionsVisible = false
 
     init {
-        root.radius = themed.dp(18f)
-        root.cardElevation = themed.dp(7f)
-        root.strokeWidth = 0
-        root.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, 232))
+        root.orientation = LinearLayout.VERTICAL
+        root.elevation = themed.dp(7f)
+        root.background = panelBackground(232)
+        root.foreground = null
         root.clipToOutline = true
 
         val content = LinearLayout(themed).apply {
@@ -70,7 +62,10 @@ class OverlayPanel(context: Context, private val actions: Actions) {
             val padding = themed.dp(4f).toInt()
             setPadding(padding, padding, padding, padding)
         }
-        root.addView(content)
+        root.addView(content, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ))
 
         val compact = LinearLayout(themed).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -164,7 +159,6 @@ class OverlayPanel(context: Context, private val actions: Actions) {
 
     fun setExpanded(value: Boolean) {
         if (expanded == value) return
-        TransitionManager.beginDelayedTransition(root)
         expanded = value
         details.visibility = if (value) View.VISIBLE else View.GONE
         expandButton.contentDescription = themed.getString(
@@ -172,7 +166,8 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         )
         expandButton.animate().rotation(if (value) 180f else 0f).setDuration(180).start()
         val alpha = if (value) 248 else 232
-        root.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, alpha))
+        root.background = panelBackground(alpha)
+        root.requestLayout()
     }
 
     fun collapse() = setExpanded(false)
@@ -180,10 +175,18 @@ class OverlayPanel(context: Context, private val actions: Actions) {
     private fun setDataActionsVisible(visible: Boolean) {
         if (dataActionsVisible == visible) return
         dataActionsVisible = visible
-        TransitionManager.beginDelayedTransition(root, AutoTransition().setDuration(220))
-        excelButton.visibility = if (visible) View.VISIBLE else View.GONE
-        shareButton.visibility = if (visible) View.VISIBLE else View.GONE
+        listOf(excelButton, shareButton).forEach { button ->
+            button.animate().cancel()
+            button.visibility = if (visible) View.VISIBLE else View.GONE
+            button.alpha = if (visible) 0f else 1f
+            if (visible) button.animate().alpha(1f).setDuration(180).start()
+        }
         root.requestLayout()
+    }
+
+    private fun panelBackground(alpha: Int) = GradientDrawable().apply {
+        cornerRadius = themed.dp(18f)
+        setColor(ColorUtils.setAlphaComponent(surface, alpha))
     }
 
     private fun configureDragHandle() {

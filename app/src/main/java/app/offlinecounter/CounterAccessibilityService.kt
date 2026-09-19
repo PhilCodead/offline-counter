@@ -19,7 +19,6 @@ import androidx.annotation.StringRes
 class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions {
     private val handler = Handler(Looper.getMainLooper())
     private val parser = PersonParser()
-    private val scroll = ScrollTracker()
     private val controller = CountingController()
     private val clearConfirmation = ClearConfirmation(CLEAR_CONFIRMATION_WINDOW_MS)
     private val step = Runnable(::runCycle)
@@ -67,13 +66,10 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         val packageName = event.packageName?.toString() ?: return
         if (packageName == this.packageName || packageName in IGNORED_PACKAGES) return
         lastPackage = packageName
-        scroll.update(event)
-        if (controller.state.phase in RUNNING_PHASES && packageName == targetPackage) {
-            schedule(EVENT_DELAY_MS)
-        }
     }
 
     override fun onInterrupt() {
+        handler.removeCallbacks(step)
         controller.stop()
         render()
     }
@@ -128,6 +124,7 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         }
         handler.removeCallbacks(step)
         controller.clear()
+        lastExport = null
         panel.collapse()
         render()
         notifyUser(R.string.results_cleared)
@@ -139,13 +136,15 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
 
     private fun startCount() {
         targetPackage = lastPackage ?: return notifyUser(R.string.open_list_first)
-        scroll.reset()
+        handler.removeCallbacks(step)
+        lastExport = null
         controller.start()
         render()
         schedule(0)
     }
 
     private fun runCycle() {
+        if (controller.state.phase !in RUNNING_PHASES) return
         val root = rootInActiveWindow
         if (root == null || root.packageName?.toString() != targetPackage) {
             val command = controller.onSourceUnavailable()
@@ -157,28 +156,20 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
             }
             return
         }
-        val snapshot = FrameSnapshot(
-            people = parser.parse(root),
-            atTop = scroll.isAtTop(),
-            atBottom = scroll.isAtBottom(),
-            fingerprint = parser.fingerprint(root),
-        )
-        execute(controller.onFrame(snapshot), root)
+        execute(controller.onFrame(parser.snapshot(root)), root)
     }
 
     private fun execute(command: CountingCommand, root: AccessibilityNodeInfo) {
         render()
         when (command) {
-            CountingCommand.ScrollBackward -> scrollOrReachBoundary(
+            CountingCommand.ScrollBackward -> performScroll(
                 root = root,
                 action = AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD,
-                boundaryFrame = FrameSnapshot(emptyList(), atTop = true, atBottom = false, fingerprint = 0),
                 delayMs = REWIND_DELAY_MS,
             )
-            CountingCommand.ScrollForward -> scrollOrReachBoundary(
+            CountingCommand.ScrollForward -> performScroll(
                 root = root,
                 action = AccessibilityNodeInfo.ACTION_SCROLL_FORWARD,
-                boundaryFrame = FrameSnapshot(emptyList(), atTop = false, atBottom = true, fingerprint = 0),
                 delayMs = FORWARD_DELAY_MS,
             )
             CountingCommand.Wait -> schedule(WAIT_DELAY_MS)
@@ -193,17 +184,19 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         }
     }
 
-    private fun scrollOrReachBoundary(
+    private fun performScroll(
         root: AccessibilityNodeInfo,
         action: Int,
-        boundaryFrame: FrameSnapshot,
         delayMs: Long,
     ) {
         val scrolled = findScrollable(root)?.performAction(action) == true
-        if (scrolled) {
-            schedule(delayMs)
+        val result = controller.onScrollResult(scrolled)
+        if (result == CountingCommand.Wait) {
+            val nextDelay = if (action == AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD &&
+                controller.state.phase == CountingPhase.Collecting) WAIT_DELAY_MS else delayMs
+            schedule(nextDelay)
         } else {
-            execute(controller.onFrame(boundaryFrame), root)
+            execute(result, root)
         }
     }
 
@@ -253,17 +246,16 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         val bounds = bounds()
         val position = OverlayPlacement.denormalize(saved, bounds)
         anchoredEdge = edge
-        params.x = OverlayPlacement.xForEdge(edge, bounds)
+        params.x = edge?.let { OverlayPlacement.xForEdge(it, bounds) } ?: position.x
         params.y = position.y
         updateWindow()
     }
 
     private fun reanchorAfterResize() {
-        val edge = anchoredEdge ?: return
         if (dragging) return
         val bounds = bounds()
         val position = OverlayPlacement.clamp(
-            OverlayPosition(OverlayPlacement.xForEdge(edge, bounds), params.y),
+            OverlayPosition(anchoredEdge?.let { OverlayPlacement.xForEdge(it, bounds) } ?: params.x, params.y),
             bounds,
         )
         if (params.x == position.x && params.y == position.y) return
@@ -325,23 +317,22 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
             dragging = false
             val b = bounds()
             val p = OverlayPlacement.clamp(OverlayPosition(params.x, params.y), b)
-            val edge = OverlayPlacement.nearestEdge(p, b)
+            val edge = OverlayPlacement.snapEdge(p, b, dp(24))
             anchoredEdge = edge
-            params.x = OverlayPlacement.xForEdge(edge, b)
+            params.x = edge?.let { OverlayPlacement.xForEdge(it, b) } ?: p.x
             params.y = p.y
             updateWindow()
-            view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
+            if (edge != null) view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
             preferences.save(OverlayPlacement.normalize(OverlayPosition(params.x, params.y), b), edge)
         }
     }
 
     private companion object {
         const val CLEAR_CONFIRMATION_WINDOW_MS = 3_500L
-        const val REWIND_DELAY_MS = 180L
-        const val FORWARD_DELAY_MS = 220L
-        const val WAIT_DELAY_MS = 90L
-        const val EVENT_DELAY_MS = 70L
-        const val SOURCE_RETRY_DELAY_MS = 250L
+        const val REWIND_DELAY_MS = 140L
+        const val FORWARD_DELAY_MS = 300L
+        const val WAIT_DELAY_MS = 180L
+        const val SOURCE_RETRY_DELAY_MS = 300L
         const val EXCEL_MIME_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         val RUNNING_PHASES = setOf(CountingPhase.Rewinding, CountingPhase.Collecting)
         val IGNORED_PACKAGES = setOf("com.android.systemui", "com.android.settings")
