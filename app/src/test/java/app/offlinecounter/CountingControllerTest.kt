@@ -51,17 +51,20 @@ class CountingControllerTest {
     }
 
     @Test
-    fun staleCollectionCompletesInsteadOfScrollingForever() {
+    fun unchangedViewportDoesNotFinishBeforeTheListBottom() {
         controller.start()
         controller.onFrame(frame(atTop = true, fingerprint = 1))
 
+        val firstPerson = Person("Анна Смирнова", "01.01.1990", "Ж", "")
+
         var command: CountingCommand = CountingCommand.Wait
-        repeat(15) {
-            command = controller.onFrame(frame(fingerprint = 2))
+        repeat(20) {
+            command = controller.onFrame(frame(people = listOf(firstPerson), fingerprint = 2))
         }
 
-        assertEquals(CountingCommand.Complete, command)
-        assertEquals(CountingPhase.Completed, controller.state.phase)
+        assertEquals(CountingCommand.ScrollForward, command)
+        assertEquals(CountingPhase.Collecting, controller.state.phase)
+        assertEquals(1, controller.state.total)
     }
 
     @Test
