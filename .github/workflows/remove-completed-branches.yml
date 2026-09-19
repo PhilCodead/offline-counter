@@ -1,0 +1,45 @@
+name: Remove completed branches
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/remove-completed-branches.yml']
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Remove approved branches at their reviewed commits
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r branch expected; do
+            actual="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$branch" --jq '.object.sha')"
+            if [[ "$actual" != "$expected" ]]; then
+              echo "Branch changed since review: $branch"
+              exit 1
+            fi
+            if [[ "$branch" == "ci/baseline" ]]; then
+              [[ "$(gh api "repos/$GITHUB_REPOSITORY/pulls/1" --jq '.merged')" == true ]]
+            else
+              git merge-base --is-ancestor "$expected" HEAD
+            fi
+            gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$branch"
+            echo "Removed $branch"
+          done <<'BRANCHES'
+          feature/oneui-v14 b1572cdc64632ed6d0bd0b60c4e15752d2ac05c2
+          chore/android-sdk-refresh 4031596e718e3acd11a8a726db8b4da3c088a8bf
+          docs/project-documentation c184584b6354ffa2c5abecb627e447889079150a
+          docs/public-release 3f0c1f1bda32d0a951fc1b5d50f4ca3b9900f386
+          ci/baseline 18ceb41e07433ce7713828c3b32dbeb5769541e6
+          BRANCHES
