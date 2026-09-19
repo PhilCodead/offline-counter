@@ -13,8 +13,8 @@ class ProjectInvariantTest {
 
         assertTrue(buildScript.contains("namespace = \"app.offlinecounter\""))
         assertTrue(buildScript.contains("applicationId = \"app.offlinecounter\""))
-        assertTrue(buildScript.contains("versionCode = 15"))
-        assertTrue(buildScript.contains("versionName = \"0.15\""))
+        assertTrue(buildScript.contains("versionCode = 16"))
+        assertTrue(buildScript.contains("versionName = \"0.16\""))
         assertFalse(manifest.contains("android.permission.INTERNET"))
         assertTrue(manifest.contains(".CounterAccessibilityService"))
         assertTrue(manifest.split("android:icon=\"@mipmap/ic_launcher\"").size - 1 >= 3)
@@ -29,5 +29,13 @@ class ProjectInvariantTest {
         assertTrue(strings.contains("3. Выберите «Оффлайн-счётчик»."))
         assertTrue(strings.contains("4. Переключите ползунок во включённое положение и нажмите «Разрешить»."))
         assertTrue(strings.contains("5. Вернитесь в исходное приложение и используйте плавающее окно."))
+    }
+
+    @Test
+    fun developerFooterClearsTheTabletDock() {
+        val layout = File("src/main/res/layout/activity_main.xml").readText()
+
+        assertTrue(layout.contains("android:id=\"@+id/developerFooter\""))
+        assertTrue(layout.contains("android:layout_marginBottom=\"56dp\""))
     }
 }
