@@ -3,13 +3,13 @@ package app.offlinecounter
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.transition.AutoTransition
+import android.transition.TransitionManager
 import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.transition.AutoTransition
-import android.transition.TransitionManager
 import androidx.core.graphics.ColorUtils
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -26,10 +26,22 @@ class OverlayPanel(context: Context, private val actions: Actions) {
     }
 
     private val themed = ContextThemeWrapper(context, R.style.Theme_OfflineCounter_Overlay)
-    private val surface = MaterialColors.getColor(themed, com.google.android.material.R.attr.colorSurface, Color.rgb(24, 31, 43))
-    private val onSurface = MaterialColors.getColor(themed, com.google.android.material.R.attr.colorOnSurface, Color.WHITE)
-    private val primary = MaterialColors.getColor(themed, com.google.android.material.R.attr.colorPrimary, Color.rgb(37, 99, 235))
-    private val secondary = MaterialColors.getColor(themed, com.google.android.material.R.attr.colorSecondary, Color.rgb(26, 175, 172))
+    private val surface = themed.materialColor(
+        com.google.android.material.R.attr.colorSurface,
+        Color.rgb(24, 31, 43),
+    )
+    private val onSurface = themed.materialColor(
+        com.google.android.material.R.attr.colorOnSurface,
+        Color.WHITE,
+    )
+    private val primary = themed.materialColor(
+        com.google.android.material.R.attr.colorPrimary,
+        Color.rgb(37, 99, 235),
+    )
+    private val secondary = themed.materialColor(
+        com.google.android.material.R.attr.colorSecondary,
+        Color.rgb(26, 175, 172),
+    )
 
     val root = MaterialCardView(themed)
     val dragHandle = DragHandleButton(themed)
@@ -56,7 +68,8 @@ class OverlayPanel(context: Context, private val actions: Actions) {
 
         val content = LinearLayout(themed).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(themed.dp(4f).toInt(), themed.dp(4f).toInt(), themed.dp(4f).toInt(), themed.dp(4f).toInt())
+            val padding = themed.dp(4f).toInt()
+            setPadding(padding, padding, padding, padding)
         }
         root.addView(content)
 
@@ -80,7 +93,11 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         shareButton.visibility = View.GONE
         compact.addView(shareButton, fixedWithStartMargin(48, 48, 4))
 
-        configureIconButton(expandButton, R.drawable.ic_expand_more, themed.getString(R.string.overlay_expand)) { setExpanded(!expanded) }
+        configureIconButton(
+            expandButton,
+            R.drawable.ic_expand_more,
+            themed.getString(R.string.overlay_expand),
+        ) { setExpanded(!expanded) }
         compact.addView(expandButton, fixedWithStartMargin(48, 48, 4))
 
         configureIconButton(closeButton, R.drawable.ic_close, themed.getString(R.string.overlay_disable), actions::onClose)
@@ -89,7 +106,12 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         details.orientation = LinearLayout.VERTICAL
         details.minimumWidth = themed.dp(336f).toInt()
         details.visibility = View.GONE
-        details.setPadding(themed.dp(10f).toInt(), themed.dp(8f).toInt(), themed.dp(10f).toInt(), themed.dp(8f).toInt())
+        details.setPadding(
+            themed.dp(10f).toInt(),
+            themed.dp(8f).toInt(),
+            themed.dp(10f).toInt(),
+            themed.dp(8f).toInt(),
+        )
         content.addView(details)
 
         statusText.setTextColor(ColorUtils.setAlphaComponent(onSurface, 220))
@@ -110,15 +132,29 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         }
         details.addView(detailActions)
 
-        configureTextButton(stopButton, themed.getString(R.string.overlay_recount), Color.rgb(185, 28, 28), actions::onStopOrRecount)
+        configureTextButton(
+            stopButton,
+            themed.getString(R.string.overlay_recount),
+            Color.rgb(185, 28, 28),
+            actions::onStopOrRecount,
+        )
         detailActions.addView(stopButton)
-        configureTextButton(clearButton, themed.getString(R.string.overlay_clear), Color.rgb(71, 85, 105), actions::onClear)
+        configureTextButton(
+            clearButton,
+            themed.getString(R.string.overlay_clear),
+            Color.rgb(71, 85, 105),
+            actions::onClear,
+        )
         detailActions.addView(clearButton, wrapWithStartMargin(8))
     }
 
     fun update(total: Int, women: Int, men: Int, collecting: Boolean) {
         setDataActionsVisible(OverlayPresentation.forTotal(total).showDataActions)
-        countButton.text = if (collecting || total > 0) themed.getString(R.string.overlay_total, total) else themed.getString(R.string.overlay_count)
+        countButton.text = if (collecting || total > 0) {
+            themed.getString(R.string.overlay_total, total)
+        } else {
+            themed.getString(R.string.overlay_count)
+        }
         totalsText.text = themed.getString(R.string.overlay_totals, total, women, men)
         stopButton.text = themed.getString(if (collecting) R.string.overlay_stop else R.string.overlay_recount)
     }
@@ -133,13 +169,11 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         TransitionManager.beginDelayedTransition(root)
         expanded = value
         details.visibility = if (value) View.VISIBLE else View.GONE
-        expandButton.contentDescription = themed.getString(if (value) R.string.overlay_collapse else R.string.overlay_expand)
+        expandButton.contentDescription = themed.getString(
+            if (value) R.string.overlay_collapse else R.string.overlay_expand,
+        )
         expandButton.animate().rotation(if (value) 180f else 0f).setDuration(180).start()
-        val mode = glassMode(value)
-        val alpha = when (mode) {
-            GlassMode.CompactOpaque -> 232
-            GlassMode.ExpandedOpaque -> 248
-        }
+        val alpha = if (value) 248 else 232
         root.setCardBackgroundColor(ColorUtils.setAlphaComponent(surface, alpha))
         root.strokeColor = ColorUtils.setAlphaComponent(onSurface, if (value) 38 else 28)
     }
@@ -158,7 +192,12 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         dragHandle.setColorFilter(ColorUtils.setAlphaComponent(onSurface, 190))
         dragHandle.setBackgroundColor(Color.TRANSPARENT)
         dragHandle.contentDescription = themed.getString(R.string.overlay_move)
-        dragHandle.setPadding(themed.dp(7f).toInt(), themed.dp(8f).toInt(), themed.dp(7f).toInt(), themed.dp(8f).toInt())
+        dragHandle.setPadding(
+            themed.dp(7f).toInt(),
+            themed.dp(8f).toInt(),
+            themed.dp(7f).toInt(),
+            themed.dp(8f).toInt(),
+        )
     }
 
     private fun configureTextButton(button: MaterialButton, text: String, color: Int, action: () -> Unit) {
@@ -175,7 +214,10 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         button.setPadding(themed.dp(10f).toInt(), 0, themed.dp(10f).toInt(), 0)
         button.backgroundTintList = ColorStateList.valueOf(color)
         button.setTextColor(Color.WHITE)
-        button.setOnClickListener { it.nativeTap(); action() }
+        button.setOnClickListener {
+            it.nativeTap()
+            action()
+        }
     }
 
     private fun configureIconButton(button: MaterialButton, icon: Int, description: String, action: () -> Unit) {
@@ -192,9 +234,13 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         button.minimumWidth = 0
         button.minHeight = 0
         button.minimumHeight = 0
-        button.setPadding(themed.dp(13f).toInt(), themed.dp(13f).toInt(), themed.dp(13f).toInt(), themed.dp(13f).toInt())
+        val padding = themed.dp(13f).toInt()
+        button.setPadding(padding, padding, padding, padding)
         button.backgroundTintList = ColorStateList.valueOf(ColorUtils.setAlphaComponent(onSurface, 28))
-        button.setOnClickListener { it.nativeTap(); action() }
+        button.setOnClickListener {
+            it.nativeTap()
+            action()
+        }
     }
 
     private fun fixed(width: Int, height: Int) = LinearLayout.LayoutParams(width, height)
@@ -211,6 +257,9 @@ class OverlayPanel(context: Context, private val actions: Actions) {
 }
 
 private fun Context.dp(value: Float): Float = value * resources.displayMetrics.density
+
+private fun Context.materialColor(attribute: Int, fallback: Int): Int =
+    MaterialColors.getColor(this, attribute, fallback)
 
 private fun View.nativeTap() {
     performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)

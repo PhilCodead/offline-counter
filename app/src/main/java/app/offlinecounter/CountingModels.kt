@@ -24,20 +24,4 @@ data class OverlayUiState(
     val men: Int = 0,
     val status: String = "",
     val expanded: Boolean = false,
-) {
-    val primaryLabel: String
-        get() = when (phase) {
-            CountingPhase.Collecting, CountingPhase.Rewinding -> total.toString()
-            CountingPhase.Completed -> "Готово"
-            else -> "Подсчёт"
-        }
-}
-
-enum class OverlayAction(val requiresConfirmation: Boolean) {
-    Count(false), Export(false), Share(false), Expand(false), StopOrRecount(false), Clear(true), Disable(false)
-}
-
-enum class GlassMode { CompactOpaque, ExpandedOpaque }
-
-fun glassMode(expanded: Boolean): GlassMode =
-    if (expanded) GlassMode.ExpandedOpaque else GlassMode.CompactOpaque
+)

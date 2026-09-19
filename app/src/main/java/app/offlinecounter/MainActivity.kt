@@ -14,21 +14,28 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var rootContent: LinearLayout
+    private lateinit var serviceCard: MaterialCardView
+    private lateinit var serviceStatus: TextView
+    private lateinit var setupGuide: LinearLayout
+    private lateinit var serviceExpandIcon: ImageView
+    private lateinit var accessibilityButton: MaterialButton
     private var guideExpanded = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        bindViews()
 
         findViewById<TextView>(R.id.versionText).text =
             getString(R.string.version_format, BuildConfig.VERSION_NAME)
 
-        findViewById<MaterialCardView>(R.id.serviceCard).setOnClickListener {
+        serviceCard.setOnClickListener {
             it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             setGuideExpanded(!guideExpanded)
         }
 
-        findViewById<MaterialButton>(R.id.enableAccessibility).setOnClickListener {
+        accessibilityButton.setOnClickListener {
             it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             openAccessibilitySettings()
         }
@@ -41,20 +48,29 @@ class MainActivity : AppCompatActivity() {
             packageName,
             CounterAccessibilityService::class.java.name,
         )
-        findViewById<TextView>(R.id.serviceStatus).setText(if (enabled) R.string.service_enabled else R.string.service_disabled)
-        findViewById<MaterialButton>(R.id.enableAccessibility).setText(if (enabled) R.string.manage_accessibility else R.string.enable_accessibility)
+        serviceStatus.setText(if (enabled) R.string.service_enabled else R.string.service_disabled)
+        accessibilityButton.setText(if (enabled) R.string.manage_accessibility else R.string.enable_accessibility)
+    }
+
+    private fun bindViews() {
+        rootContent = findViewById(R.id.rootContent)
+        serviceCard = findViewById(R.id.serviceCard)
+        serviceStatus = findViewById(R.id.serviceStatus)
+        setupGuide = findViewById(R.id.setupGuide)
+        serviceExpandIcon = findViewById(R.id.serviceExpandIcon)
+        accessibilityButton = findViewById(R.id.enableAccessibility)
     }
 
     private fun setGuideExpanded(expanded: Boolean) {
         if (guideExpanded == expanded) return
         guideExpanded = expanded
-        TransitionManager.beginDelayedTransition(findViewById(R.id.rootContent))
-        findViewById<LinearLayout>(R.id.setupGuide).visibility = if (expanded) View.VISIBLE else View.GONE
-        findViewById<ImageView>(R.id.serviceExpandIcon).animate()
+        TransitionManager.beginDelayedTransition(rootContent)
+        setupGuide.visibility = if (expanded) View.VISIBLE else View.GONE
+        serviceExpandIcon.animate()
             .rotation(if (expanded) 180f else 0f)
             .setDuration(180)
             .start()
-        findViewById<MaterialCardView>(R.id.serviceCard).contentDescription = getString(
+        serviceCard.contentDescription = getString(
             if (expanded) R.string.collapse_setup_guide else R.string.expand_setup_guide,
         )
     }

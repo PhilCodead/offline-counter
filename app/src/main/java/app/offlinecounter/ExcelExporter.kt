@@ -38,5 +38,4 @@ object ExcelExporter {
             throw error
         }
     }
-
 }

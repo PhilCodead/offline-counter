@@ -13,16 +13,12 @@ class ScrollTracker {
         private set
     var maxScrollY = -1
         private set
-    var serial = 0
-        private set
-
     fun reset() {
         fromIndex = -1
         toIndex = -1
         itemCount = -1
         scrollY = -1
         maxScrollY = -1
-        serial = 0
     }
 
     fun update(event: AccessibilityEvent) {
@@ -36,7 +32,6 @@ class ScrollTracker {
         itemCount = count
         scrollY = y
         maxScrollY = maxY
-        serial++
     }
 
     fun isAtTop(): Boolean =

@@ -44,7 +44,11 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT,
-        ).apply { gravity = Gravity.TOP or Gravity.START; x = 0; y = dp(180) }
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = 0
+            y = dp(180)
+        }
         panel.dragHandle.setOnTouchListener(DragListener())
         windowManager.addView(panel.root, params)
         overlayNotice = OverlayNotice(this, windowManager, handler)
@@ -55,13 +59,18 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         val packageName = event.packageName?.toString() ?: return
-        if (packageName == this.packageName || packageName == "com.android.systemui" || packageName == "com.android.settings") return
+        if (packageName == this.packageName || packageName in IGNORED_PACKAGES) return
         lastPackage = packageName
         scroll.update(event)
-        if (controller.state.phase in setOf(CountingPhase.Rewinding, CountingPhase.Collecting) && packageName == targetPackage) schedule(70)
+        if (controller.state.phase in RUNNING_PHASES && packageName == targetPackage) {
+            schedule(EVENT_DELAY_MS)
+        }
     }
 
-    override fun onInterrupt() { controller.stop(); render() }
+    override fun onInterrupt() {
+        controller.stop()
+        render()
+    }
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
@@ -74,27 +83,48 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
 
     override fun onExport() {
         runCatching { ExcelExporter.export(this, controller.people) }
-            .onSuccess { lastExport = it; notifyUser(R.string.export_saved); openExport(it) }
+            .onSuccess {
+                lastExport = it
+                notifyUser(R.string.export_saved)
+                openExport(it)
+            }
             .onFailure { notifyUser(R.string.export_failed) }
     }
 
     override fun onShare() {
         val uri = lastExport ?: return notifyUser(R.string.save_before_share)
-        startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-            type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = EXCEL_MIME_TYPE
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }, getString(R.string.share_excel)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+        startActivity(
+            Intent.createChooser(shareIntent, getString(R.string.share_excel))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
     }
 
     override fun onStopOrRecount() {
-        if (controller.state.phase in setOf(CountingPhase.Rewinding, CountingPhase.Collecting)) { controller.stop(); handler.removeCallbacks(step); render() } else startCount()
+        if (controller.state.phase in RUNNING_PHASES) {
+            controller.stop()
+            handler.removeCallbacks(step)
+            render()
+        } else {
+            startCount()
+        }
     }
 
     override fun onClear() {
         val now = SystemClock.elapsedRealtime()
-        if (now > clearConfirmationUntil) { clearConfirmationUntil = now + 3500; return notifyUser(R.string.confirm_clear) }
-        handler.removeCallbacks(step); controller.clear(); render(); notifyUser(R.string.results_cleared)
+        if (now > clearConfirmationUntil) {
+            clearConfirmationUntil = now + CLEAR_CONFIRMATION_WINDOW_MS
+            notifyUser(R.string.confirm_clear)
+            return
+        }
+        handler.removeCallbacks(step)
+        controller.clear()
+        render()
+        notifyUser(R.string.results_cleared)
     }
 
     override fun onClose() {
@@ -103,34 +133,77 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
 
     private fun startCount() {
         targetPackage = lastPackage ?: return notifyUser(R.string.open_list_first)
-        scroll.reset(); controller.start(); render(); schedule(0)
+        scroll.reset()
+        controller.start()
+        render()
+        schedule(0)
     }
 
     private fun runCycle() {
         val root = rootInActiveWindow
         if (root == null || root.packageName?.toString() != targetPackage) {
-            val command = controller.onSourceUnavailable(); render()
-            if (command is CountingCommand.Fail) notifyUser(command.message) else schedule(250)
+            val command = controller.onSourceUnavailable()
+            render()
+            if (command is CountingCommand.Fail) {
+                notifyUser(command.message)
+            } else {
+                schedule(SOURCE_RETRY_DELAY_MS)
+            }
             return
         }
-        val snapshot = FrameSnapshot(parser.parse(root), scroll.isAtTop(), scroll.isAtBottom(), parser.fingerprint(root))
+        val snapshot = FrameSnapshot(
+            people = parser.parse(root),
+            atTop = scroll.isAtTop(),
+            atBottom = scroll.isAtBottom(),
+            fingerprint = parser.fingerprint(root),
+        )
         execute(controller.onFrame(snapshot), root)
     }
 
     private fun execute(command: CountingCommand, root: AccessibilityNodeInfo) {
         render()
         when (command) {
-            CountingCommand.ScrollBackward -> if (findScrollable(root)?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD) == true) schedule(180) else execute(controller.onFrame(FrameSnapshot(emptyList(), true, false, 0)), root)
-            CountingCommand.ScrollForward -> if (findScrollable(root)?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD) == true) schedule(220) else execute(controller.onFrame(FrameSnapshot(emptyList(), false, true, 0)), root)
-            CountingCommand.Wait -> schedule(90)
-            CountingCommand.Complete -> { render(); notifyUser(R.string.count_complete) }
-            is CountingCommand.Fail -> { render(); notifyUser(command.message) }
+            CountingCommand.ScrollBackward -> scrollOrReachBoundary(
+                root = root,
+                action = AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD,
+                boundaryFrame = FrameSnapshot(emptyList(), atTop = true, atBottom = false, fingerprint = 0),
+                delayMs = REWIND_DELAY_MS,
+            )
+            CountingCommand.ScrollForward -> scrollOrReachBoundary(
+                root = root,
+                action = AccessibilityNodeInfo.ACTION_SCROLL_FORWARD,
+                boundaryFrame = FrameSnapshot(emptyList(), atTop = false, atBottom = true, fingerprint = 0),
+                delayMs = FORWARD_DELAY_MS,
+            )
+            CountingCommand.Wait -> schedule(WAIT_DELAY_MS)
+            CountingCommand.Complete -> {
+                render()
+                notifyUser(R.string.count_complete)
+            }
+            is CountingCommand.Fail -> {
+                render()
+                notifyUser(command.message)
+            }
+        }
+    }
+
+    private fun scrollOrReachBoundary(
+        root: AccessibilityNodeInfo,
+        action: Int,
+        boundaryFrame: FrameSnapshot,
+        delayMs: Long,
+    ) {
+        val scrolled = findScrollable(root)?.performAction(action) == true
+        if (scrolled) {
+            schedule(delayMs)
+        } else {
+            execute(controller.onFrame(boundaryFrame), root)
         }
     }
 
     private fun render() {
         val state = controller.state
-        panel.update(state.total, state.women, state.men, state.phase in setOf(CountingPhase.Rewinding, CountingPhase.Collecting))
+        panel.update(state.total, state.women, state.men, state.phase in RUNNING_PHASES)
         if (state.status.isNotEmpty()) panel.setStatus(state.status)
     }
 
@@ -148,7 +221,11 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
     }
 
-    private fun schedule(delay: Long) { handler.removeCallbacks(step); handler.postDelayed(step, delay) }
+    private fun schedule(delay: Long) {
+        handler.removeCallbacks(step)
+        handler.postDelayed(step, delay)
+    }
+
     private fun findScrollable(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
         if (node == null) return null
         if (node.isScrollable) return node
@@ -156,23 +233,66 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         return null
     }
 
-    private fun bounds() = OverlayBounds(resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels, panel.root.measuredWidth.coerceAtLeast(dp(280)), panel.root.measuredHeight.coerceAtLeast(dp(68)), dp(24), dp(32))
-    private fun restorePosition() { val (saved, edge) = preferences.load(); val b = bounds(); val p = OverlayPlacement.denormalize(saved, b); params.x = if (edge == OverlayEdge.Start) 0 else b.width - b.panelWidth; params.y = p.y; updateWindow() }
-    private fun updateWindow() { if (::panel.isInitialized) runCatching { windowManager.updateViewLayout(panel.root, params) } }
+    private fun bounds() = OverlayBounds(
+        width = resources.displayMetrics.widthPixels,
+        height = resources.displayMetrics.heightPixels,
+        panelWidth = panel.root.measuredWidth.coerceAtLeast(dp(280)),
+        panelHeight = panel.root.measuredHeight.coerceAtLeast(dp(68)),
+        insetTop = dp(24),
+        insetBottom = dp(32),
+    )
+
+    private fun restorePosition() {
+        val (saved, edge) = preferences.load()
+        val bounds = bounds()
+        val position = OverlayPlacement.denormalize(saved, bounds)
+        params.x = if (edge == OverlayEdge.Start) 0 else bounds.width - bounds.panelWidth
+        params.y = position.y
+        updateWindow()
+    }
+
+    private fun updateWindow() {
+        if (::panel.isInitialized) runCatching { windowManager.updateViewLayout(panel.root, params) }
+    }
+
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 
     private fun openExport(uri: Uri) {
-        val intent = Intent(Intent.ACTION_VIEW).apply { setDataAndType(uri, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK) }
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, EXCEL_MIME_TYPE)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
         runCatching { startActivity(intent) }
     }
 
     private inner class DragListener : View.OnTouchListener {
-        private var start = OverlayPosition(0, 0); private var touchX = 0f; private var touchY = 0f
+        private var start = OverlayPosition(0, 0)
+        private var touchX = 0f
+        private var touchY = 0f
+
         override fun onTouch(view: View, event: MotionEvent): Boolean {
             when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> { start = OverlayPosition(params.x, params.y); touchX = event.rawX; touchY = event.rawY }
-                MotionEvent.ACTION_MOVE -> { val p = OverlayPlacement.clamp(OverlayPosition(start.x + (event.rawX - touchX).toInt(), start.y + (event.rawY - touchY).toInt()), bounds()); params.x = p.x; params.y = p.y; updateWindow() }
-                MotionEvent.ACTION_UP -> { finishDrag(view); view.performClick() }
+                MotionEvent.ACTION_DOWN -> {
+                    start = OverlayPosition(params.x, params.y)
+                    touchX = event.rawX
+                    touchY = event.rawY
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val position = OverlayPlacement.clamp(
+                        OverlayPosition(
+                            start.x + (event.rawX - touchX).toInt(),
+                            start.y + (event.rawY - touchY).toInt(),
+                        ),
+                        bounds(),
+                    )
+                    params.x = position.x
+                    params.y = position.y
+                    updateWindow()
+                }
+                MotionEvent.ACTION_UP -> {
+                    finishDrag(view)
+                    view.performClick()
+                }
                 MotionEvent.ACTION_CANCEL -> finishDrag(view)
             }
             return true
@@ -188,5 +308,17 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
             view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
             preferences.save(OverlayPlacement.normalize(OverlayPosition(params.x, params.y), b), edge)
         }
+    }
+
+    private companion object {
+        const val CLEAR_CONFIRMATION_WINDOW_MS = 3_500L
+        const val REWIND_DELAY_MS = 180L
+        const val FORWARD_DELAY_MS = 220L
+        const val WAIT_DELAY_MS = 90L
+        const val EVENT_DELAY_MS = 70L
+        const val SOURCE_RETRY_DELAY_MS = 250L
+        const val EXCEL_MIME_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        val RUNNING_PHASES = setOf(CountingPhase.Rewinding, CountingPhase.Collecting)
+        val IGNORED_PACKAGES = setOf("com.android.systemui", "com.android.settings")
     }
 }
