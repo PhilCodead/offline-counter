@@ -1,23 +1,42 @@
-name: Ошибка
-description: Сообщить о проблеме в приложении
-title: "[Ошибка] "
+name: Сообщить об ошибке
+description: Воспроизводимая проблема с подсчётом, экспортом или интерфейсом.
 body:
-  - type: textarea
-    id: device
+  - type: input
+    id: version
     attributes:
-      label: Устройство и версии
-      description: Модель, Android / One UI и версия приложения.
+      label: Версия приложения
+      description: Номер на стартовом экране. Для собственной сборки укажите коммит.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Устройство и система
+      placeholder: Модель устройства и версия Android
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: Как повторить
-      description: Шаги, ожидаемый результат и фактическое поведение.
+      label: Шаги воспроизведения
+      description: Укажите исходное состояние и действия, после которых возникает ошибка.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемый результат
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Фактический результат
+      description: Для ошибки подсчёта укажите ожидаемое число и результаты повторных запусков.
     validations:
       required: true
   - type: textarea
     id: evidence
     attributes:
-      label: Скриншот или дополнительные сведения
-      description: Удалите ФИО, даты рождения и другие персональные данные перед отправкой.
+      label: Дополнительные сведения
+      description: Скриншоты, сообщения об ошибках или пример на вымышленных данных. Удалите ФИО, даты рождения и другие персональные данные.

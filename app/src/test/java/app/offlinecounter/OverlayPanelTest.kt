@@ -13,7 +13,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [29, 35, 36])
 class OverlayPanelTest {
     private val context: Context get() = RuntimeEnvironment.getApplication()
 
