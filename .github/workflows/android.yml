@@ -2,8 +2,13 @@ name: Android CI
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -15,22 +20,22 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
           cache: gradle
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          packages: 'platform-tools platforms;android-36.1 build-tools;36.0.0'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v5
 
       - name: Test, lint, and assemble
         run: ./gradlew testDebugUnitTest testReleaseUnitTest lintDebug lintRelease assembleDebug assembleRelease --stacktrace
@@ -38,14 +43,14 @@ jobs:
       - name: Inspect release and prepare signing tools
         run: |
           mkdir -p release-tools
-          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" release-tools/
-          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" release-tools/
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging app/build/outputs/apk/release/app-release-unsigned.apk > release-tools/manifest.txt
+          cp "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar" release-tools/
+          cp "$ANDROID_HOME/build-tools/36.0.0/zipalign" release-tools/
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging app/build/outputs/apk/release/app-release-unsigned.apk > release-tools/manifest.txt
           if grep -q application-debuggable release-tools/manifest.txt; then
             echo "Release APK must not be debuggable"
             exit 1
           fi
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 app/build/outputs/apk/release/app-release-unsigned.apk
+          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -P 16 4 app/build/outputs/apk/release/app-release-unsigned.apk
 
       - name: Upload build outputs
         if: always()

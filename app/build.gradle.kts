@@ -5,21 +5,29 @@ plugins {
 
 android {
     namespace = "app.offlinecounter"
-    compileSdk = 35
+    compileSdk {
+        version = release(36) { minorApiLevel = 1 }
+    }
+    buildToolsVersion = "36.0.0"
 
     defaultConfig {
         applicationId = "app.offlinecounter"
         minSdk = 29
-        targetSdk = 35
-        versionCode = 22
-        versionName = "1.0.1"
+        targetSdk = 36
+        versionCode = 23
+        versionName = "1.0.2-dev"
     }
 
     buildFeatures {
         buildConfig = true
     }
 
-    testOptions.unitTests.isIncludeAndroidResources = true
+    testOptions.unitTests {
+        isIncludeAndroidResources = true
+        all {
+            it.jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
+        }
+    }
 
     buildTypes {
         release {
@@ -34,16 +42,18 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
 
-    kotlinOptions {
-        jvmTarget = "17"
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.core:core-ktx:1.18.0")
+    implementation("androidx.appcompat:appcompat:1.7.1")
+    implementation("com.google.android.material:material:1.13.0")
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("org.robolectric:robolectric:4.17")
 }
