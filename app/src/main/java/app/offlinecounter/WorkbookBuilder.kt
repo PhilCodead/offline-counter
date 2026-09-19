@@ -90,17 +90,16 @@ object WorkbookBuilder {
     }
 
     private fun String.escapeXml() = buildString(length) {
-        for (character in this@escapeXml) {
-            append(
-                when (character) {
-                    '&' -> "&amp;"
-                    '<' -> "&lt;"
-                    '>' -> "&gt;"
-                    '"' -> "&quot;"
-                    '\'' -> "&apos;"
-                    else -> character
-                },
-            )
+        this@escapeXml.codePoints().forEach { codePoint ->
+            when (codePoint) {
+                '&'.code -> append("&amp;")
+                '<'.code -> append("&lt;")
+                '>'.code -> append("&gt;")
+                '"'.code -> append("&quot;")
+                '\''.code -> append("&apos;")
+                0x09, 0x0A, 0x0D,
+                in 0x20..0xD7FF, in 0xE000..0xFFFD, in 0x10000..0x10FFFF -> appendCodePoint(codePoint)
+            }
         }
     }
 

@@ -25,16 +25,17 @@ object ExcelExporter {
         val resolver = context.contentResolver
         val uri = requireNotNull(resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values))
         try {
-            resolver.openOutputStream(uri, "w")!!.use { output ->
+            requireNotNull(resolver.openOutputStream(uri, "w")).use { output ->
                 output.write(bytes)
                 output.flush()
             }
             values.clear()
             values.put(MediaStore.MediaColumns.IS_PENDING, 0)
-            resolver.update(uri, values, null, null)
+            check(resolver.update(uri, values, null, null) == 1) { "Unable to publish exported file" }
             return uri
-        } catch (error: Throwable) {
-            resolver.delete(uri, null, null)
+        } catch (error: Exception) {
+            runCatching { resolver.delete(uri, null, null) }
+                .exceptionOrNull()?.let(error::addSuppressed)
             throw error
         }
     }

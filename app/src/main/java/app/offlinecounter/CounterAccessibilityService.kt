@@ -1,8 +1,8 @@
 package app.offlinecounter
 
 import android.accessibilityservice.AccessibilityService
-import android.content.Intent
 import android.content.ClipData
+import android.content.Intent
 import android.graphics.PixelFormat
 import android.net.Uri
 import android.os.Handler
@@ -99,12 +99,15 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
             type = EXCEL_MIME_TYPE
             putExtra(Intent.EXTRA_STREAM, uri)
+            clipData = ClipData.newRawUri("Excel", uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        startActivity(
-            Intent.createChooser(shareIntent, getString(R.string.share_excel))
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-        )
+        runCatching {
+            startActivity(
+                Intent.createChooser(shareIntent, getString(R.string.share_excel))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION),
+            )
+        }.onFailure { notifyUser(R.string.share_failed) }
     }
 
     override fun onStopOrRecount() {

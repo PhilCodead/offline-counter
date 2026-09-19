@@ -34,7 +34,6 @@ class OverlayNotice(
         elevation = dp(3).toFloat()
         clipToOutline = true
     }
-    private val card = textView
     private val layoutParams = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.WRAP_CONTENT,
@@ -51,18 +50,18 @@ class OverlayNotice(
     fun show(message: String) {
         handler.removeCallbacks(dismiss)
         animationGeneration++
-        card.animate().setListener(null).withEndAction(null).cancel()
+        textView.animate().setListener(null).withEndAction(null).cancel()
         textView.maxWidth = minOf(dp(360), themedContext.resources.displayMetrics.widthPixels - dp(48))
             .coerceAtLeast(dp(48))
         textView.text = message
         if (!attached) {
-            card.alpha = 0f
-            windowManager.addView(card, layoutParams)
+            textView.alpha = 0f
+            windowManager.addView(textView, layoutParams)
             attached = true
         } else {
-            windowManager.updateViewLayout(card, layoutParams)
+            windowManager.updateViewLayout(textView, layoutParams)
         }
-        card.animate()
+        textView.animate()
             .alpha(1f)
             .setInterpolator(DecelerateInterpolator())
             .setDuration(180)
@@ -73,22 +72,22 @@ class OverlayNotice(
     fun destroy() {
         handler.removeCallbacks(dismiss)
         animationGeneration++
-        card.animate().setListener(null).withEndAction(null).cancel()
-        if (attached) runCatching { windowManager.removeViewImmediate(card) }
+        textView.animate().setListener(null).withEndAction(null).cancel()
+        if (attached) runCatching { windowManager.removeViewImmediate(textView) }
         attached = false
     }
 
     private fun hide() {
         if (!attached) return
         val generation = ++animationGeneration
-        card.animate().setListener(null).withEndAction(null).cancel()
-        card.animate()
+        textView.animate().setListener(null).withEndAction(null).cancel()
+        textView.animate()
             .alpha(0f)
             .setInterpolator(AccelerateInterpolator())
             .setDuration(220)
             .withEndAction {
                 if (generation != animationGeneration || !attached) return@withEndAction
-                runCatching { windowManager.removeViewImmediate(card) }
+                runCatching { windowManager.removeViewImmediate(textView) }
                 attached = false
             }
             .start()

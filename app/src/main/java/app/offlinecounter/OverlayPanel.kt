@@ -147,7 +147,7 @@ class OverlayPanel(context: Context, private val actions: Actions) {
     fun update(total: Int, women: Int, men: Int, collecting: Boolean) {
         closeButton.isEnabled = !collecting
         closeButton.alpha = if (collecting) 0.35f else 1f
-        setDataActionsVisible(OverlayPresentation.forTotal(total).showDataActions)
+        setDataActionsVisible(total > 0)
         countButton.text = if (collecting || total > 0) {
             themed.getString(R.string.overlay_total, total)
         } else {
@@ -157,12 +157,11 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         stopButton.text = themed.getString(if (collecting) R.string.overlay_stop else R.string.overlay_recount)
     }
 
-    fun setStatus(text: String, reveal: Boolean = false) {
+    fun setStatus(text: String) {
         statusText.text = text
-        if (reveal) setExpanded(true)
     }
 
-    fun setExpanded(value: Boolean) {
+    private fun setExpanded(value: Boolean) {
         if (expanded == value) return
         expanded = value
         details.visibility = if (value) View.VISIBLE else View.GONE

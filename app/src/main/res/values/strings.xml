@@ -23,6 +23,7 @@
     <string name="export_failed">Не удалось сохранить Excel</string>
     <string name="save_before_share">Сначала сохраните Excel</string>
     <string name="share_excel">Передать Excel</string>
+    <string name="share_failed">Не удалось передать файл. Сохранённый Excel доступен в папке «Загрузки»</string>
     <string name="overlay_count">Подсчёт</string>
     <string name="overlay_export">В Excel</string>
     <string name="overlay_expand">Развернуть панель</string>
