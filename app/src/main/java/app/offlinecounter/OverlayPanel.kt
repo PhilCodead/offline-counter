@@ -2,6 +2,7 @@ package app.offlinecounter
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.ContextThemeWrapper
@@ -24,8 +25,10 @@ class OverlayPanel(context: Context, private val actions: Actions) {
     }
 
     private val themed = ContextThemeWrapper(context, R.style.Theme_OfflineCounter_Overlay)
-    private val surface = Color.rgb(30, 38, 49)
-    private val onSurface = Color.rgb(245, 247, 250)
+    private val darkTheme = themed.resources.configuration.uiMode and
+        Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+    private val surface = if (darkTheme) Color.rgb(30, 38, 49) else Color.rgb(246, 248, 250)
+    private val onSurface = if (darkTheme) Color.rgb(245, 247, 250) else Color.rgb(30, 38, 49)
     private val primary = themed.materialColor(
         com.google.android.material.R.attr.colorPrimary,
         Color.rgb(37, 99, 235),
@@ -53,7 +56,7 @@ class OverlayPanel(context: Context, private val actions: Actions) {
     init {
         root.orientation = LinearLayout.VERTICAL
         root.elevation = themed.dp(7f)
-        root.background = panelBackground(232)
+        root.background = panelBackground(false)
         root.foreground = null
         root.clipToOutline = true
 
@@ -142,6 +145,8 @@ class OverlayPanel(context: Context, private val actions: Actions) {
     }
 
     fun update(total: Int, women: Int, men: Int, collecting: Boolean) {
+        closeButton.isEnabled = !collecting
+        closeButton.alpha = if (collecting) 0.35f else 1f
         setDataActionsVisible(OverlayPresentation.forTotal(total).showDataActions)
         countButton.text = if (collecting || total > 0) {
             themed.getString(R.string.overlay_total, total)
@@ -165,8 +170,7 @@ class OverlayPanel(context: Context, private val actions: Actions) {
             if (value) R.string.overlay_collapse else R.string.overlay_expand,
         )
         expandButton.setIconResource(if (value) R.drawable.ic_expand_less else R.drawable.ic_expand_more)
-        val alpha = if (value) 248 else 232
-        root.background = panelBackground(alpha)
+        root.background = panelBackground(value)
         root.requestLayout()
     }
 
@@ -184,9 +188,18 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         root.requestLayout()
     }
 
-    private fun panelBackground(alpha: Int) = GradientDrawable().apply {
+    private fun panelBackground(expanded: Boolean) = GradientDrawable().apply {
         cornerRadius = themed.dp(18f)
-        setColor(ColorUtils.setAlphaComponent(surface, alpha))
+        if (darkTheme) {
+            setColor(ColorUtils.setAlphaComponent(surface, if (expanded) 248 else 232))
+        } else {
+            orientation = GradientDrawable.Orientation.TOP_BOTTOM
+            colors = if (expanded) {
+                intArrayOf(Color.argb(248, 252, 253, 255), Color.argb(242, 236, 241, 246))
+            } else {
+                intArrayOf(Color.argb(200, 252, 253, 255), ColorUtils.setAlphaComponent(surface, 184))
+            }
+        }
     }
 
     private fun configureDragHandle() {

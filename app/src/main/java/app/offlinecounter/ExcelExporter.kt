@@ -14,7 +14,7 @@ object ExcelExporter {
         val bytes = WorkbookBuilder.replaceSheet(context.assets.open(TEMPLATE).use { it.readBytes() }, people)
         require(WorkbookBuilder.isValid(bytes))
 
-        val name = "patients_export_${System.currentTimeMillis()}.xlsx"
+        val name = ExportFileName.create(people.size)
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, name)
             put(MediaStore.MediaColumns.MIME_TYPE, MIME)

@@ -132,6 +132,7 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     }
 
     override fun onClose() {
+        if (controller.state.phase in RUNNING_PHASES) return
         disableSelf()
     }
 
