@@ -1,0 +1,9 @@
+name: Предложение
+description: Предложить улучшение
+body:
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Что стоит улучшить и зачем
+    validations:
+      required: true

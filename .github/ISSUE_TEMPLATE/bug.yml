@@ -1,0 +1,23 @@
+name: Ошибка
+description: Сообщить о проблеме в приложении
+title: "[Ошибка] "
+body:
+  - type: textarea
+    id: device
+    attributes:
+      label: Устройство и версии
+      description: Модель, Android / One UI и версия приложения.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Как повторить
+      description: Шаги, ожидаемый результат и фактическое поведение.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Скриншот или дополнительные сведения
+      description: Удалите ФИО, даты рождения и другие персональные данные перед отправкой.
