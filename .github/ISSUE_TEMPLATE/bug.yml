@@ -12,7 +12,7 @@ body:
     id: environment
     attributes:
       label: Устройство и система
-      placeholder: Модель устройства, версия Android и One UI
+      placeholder: Модель устройства и версия Android
     validations:
       required: true
   - type: textarea
