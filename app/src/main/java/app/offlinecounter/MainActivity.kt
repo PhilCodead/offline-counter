@@ -9,6 +9,9 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.transition.TransitionManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -24,8 +27,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_main)
         bindViews()
+        applySystemInsets()
 
         findViewById<TextView>(R.id.versionText).text =
             getString(R.string.version_format, BuildConfig.VERSION_NAME)
@@ -59,6 +64,21 @@ class MainActivity : AppCompatActivity() {
         setupGuide = findViewById(R.id.setupGuide)
         serviceExpandIcon = findViewById(R.id.serviceExpandIcon)
         accessibilityButton = findViewById(R.id.enableAccessibility)
+    }
+
+    private fun applySystemInsets() {
+        val left = rootContent.paddingLeft
+        val top = rootContent.paddingTop
+        val right = rootContent.paddingRight
+        val bottom = rootContent.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(rootContent) { view, insets ->
+            val system = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
+            )
+            view.setPadding(left + system.left, top + system.top, right + system.right, bottom + system.bottom)
+            insets
+        }
+        ViewCompat.requestApplyInsets(rootContent)
     }
 
     private fun setGuideExpanded(expanded: Boolean) {

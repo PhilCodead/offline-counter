@@ -4,7 +4,8 @@
 
 - SDK 36.1, target SDK 36 и Build Tools 36.0.0.
 - AGP 8.13.2, Gradle 8.13, Kotlin 2.3.0.
-- AndroidX Core 1.19.0, AppCompat 1.8.0, Material 1.14.0.
+- AndroidX Core 1.18.0, AppCompat 1.7.1, Material 1.13.0.
+- Системные отступы стартового экрана для edge-to-edge на Android 16.
 - Robolectric 4.17 и проверки панели на Android API 29, 35 и 36.
 
 ## 1.0.1 — 2026-09-19

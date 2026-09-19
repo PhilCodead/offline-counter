@@ -9,7 +9,7 @@
 Kerimli Systems · Android · Kotlin · Без интернета
 
 [![Android CI](https://github.com/PhilCodead/offline-counter/actions/workflows/android.yml/badge.svg)](https://github.com/PhilCodead/offline-counter/actions/workflows/android.yml)
-[![Release](https://img.shields.io/github/v/release/PhilCodead/offline-counter)](https://github.com/PhilCodead/offline-counter/releases/latest)
+[![Release 1.0.1](https://img.shields.io/badge/release-1.0.1-2563eb)](https://github.com/PhilCodead/offline-counter/releases/tag/v1.0.1)
 ![Android 10+](https://img.shields.io/badge/Android-10%2B-3DDC84?logo=android&logoColor=white)
 
 [**Скачать APK**](https://github.com/PhilCodead/offline-counter/releases/latest) · [История изменений](CHANGELOG.md) · [Сообщить об ошибке](https://github.com/PhilCodead/offline-counter/issues/new/choose)
@@ -70,6 +70,9 @@ APK и контрольная сумма доступны в Releases. Обно�
 Минимальная версия Android — 10 (API 29).
 Namespace и applicationId — `app.offlinecounter`.
 Актуальные версии SDK и зависимостей закреплены в Gradle-файлах.
+Для текущей ветки нужны JDK 21, Android SDK 36.1 и Build Tools 36.0.0.
+Опубликованный APK 1.0.1 соответствует тегу `v1.0.1`;
+обновления SDK готовятся в линии `1.0.2-dev`.
 
 ```sh
 ./gradlew testDebugUnitTest testReleaseUnitTest lintDebug lintRelease assembleRelease

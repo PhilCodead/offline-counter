@@ -4,7 +4,8 @@
 
 ## Проверки и сборка
 
-Требуются JDK 17, Android SDK 35 и Build Tools 35.0.0.
+Для текущей ветки требуются JDK 21, Android SDK 36.1 и Build Tools 36.0.0.
+Для воспроизведения старого выпуска используйте соответствующий git-тег.
 
 ```bash
 ./gradlew clean testDebugUnitTest testReleaseUnitTest lintDebug lintRelease assembleRelease
@@ -20,7 +21,7 @@ CI сохраняет неподписанный release APK, отчёты, R8 m
 Не создавайте новый ключ для очередного обновления.
 
 ```bash
-export APKSIGNER_JAR="$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar"
+export APKSIGNER_JAR="$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar"
 bash scripts/sign-release.sh \
   app/build/outputs/apk/release/app-release-unsigned.apk \
   Offline-Counter-release.apk \
