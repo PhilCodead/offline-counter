@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Сборка и устройство проекта
+    url: https://github.com/PhilCodead/offline-counter/blob/main/docs/DEVELOPMENT.md
+    about: Окружение, команды сборки и структура исходников.
+  - name: Сообщить об уязвимости
+    url: https://github.com/PhilCodead/offline-counter/blob/main/SECURITY.md
+    about: Порядок передачи сведений об уязвимости без публикации конфиденциальных данных.
