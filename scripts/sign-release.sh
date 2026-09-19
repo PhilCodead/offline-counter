@@ -20,7 +20,6 @@ java -jar "$APKSIGNER_JAR" sign \
   --ks-type PKCS12 \
   --ks-key-alias offline-counter \
   --ks-pass "file:$signing_directory/keystore.password" \
-  --key-pass "file:$signing_directory/keystore.password" \
   --v1-signing-enabled false \
   --v2-signing-enabled true \
   --v3-signing-enabled true \
