@@ -4,7 +4,6 @@ import java.util.LinkedHashMap
 
 class CountingController {
     private val collected = LinkedHashMap<String, Person>()
-    private var stalePasses = 0
     private var rewindSteps = 0
     private var scrollSteps = 0
     private var unavailableTicks = 0
@@ -17,7 +16,6 @@ class CountingController {
 
     fun start(): CountingCommand {
         collected.clear()
-        stalePasses = 0
         rewindSteps = 0
         scrollSteps = 0
         unavailableTicks = 0
@@ -39,7 +37,6 @@ class CountingController {
 
     fun clear() {
         collected.clear()
-        stalePasses = 0
         state = OverlayUiState(status = "Очищено")
     }
 
@@ -65,14 +62,17 @@ class CountingController {
     }
 
     private fun collect(frame: FrameSnapshot): CountingCommand {
-        val previousSize = collected.size
         frame.people.forEach { collected.putIfAbsent(it.key, it) }
-        stalePasses = if (collected.size == previousSize) stalePasses + 1 else 0
         updateCounts()
 
-        if (frame.atBottom || stalePasses >= MAX_STALE_PASSES || scrollSteps >= MAX_SCROLL_STEPS) {
+        if (frame.atBottom) {
             state = state.copy(phase = CountingPhase.Completed, status = "Готово")
             return CountingCommand.Complete
+        }
+        if (scrollSteps >= MAX_SCROLL_STEPS) {
+            val message = "Не удалось определить конец списка — попробуйте снова"
+            state = state.copy(phase = CountingPhase.Error, status = message, expanded = true)
+            return CountingCommand.Fail(message)
         }
         scrollSteps++
         return CountingCommand.ScrollForward
@@ -89,7 +89,6 @@ class CountingController {
     private companion object {
         const val MAX_REWIND_STEPS = 350
         const val MAX_SCROLL_STEPS = 1000
-        const val MAX_STALE_PASSES = 15
         const val MAX_UNAVAILABLE_TICKS = 20
     }
 }
