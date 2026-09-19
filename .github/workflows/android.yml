@@ -29,16 +29,23 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
-      - name: Set up Gradle 8.9
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-
-      - name: Generate Gradle Wrapper
-        run: gradle wrapper --gradle-version 8.9 --distribution-type bin
 
       - name: Test, lint, and assemble
-        run: ./gradlew testDebugUnitTest lintDebug assembleDebug --stacktrace
+        run: ./gradlew testDebugUnitTest testReleaseUnitTest lintDebug lintRelease assembleDebug assembleRelease --stacktrace
+
+      - name: Inspect release and prepare signing tools
+        run: |
+          mkdir -p release-tools
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" release-tools/
+          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" release-tools/
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging app/build/outputs/apk/release/app-release-unsigned.apk > release-tools/manifest.txt
+          if grep -q application-debuggable release-tools/manifest.txt; then
+            echo "Release APK must not be debuggable"
+            exit 1
+          fi
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 app/build/outputs/apk/release/app-release-unsigned.apk
 
       - name: Upload build outputs
         if: always()
@@ -48,8 +55,8 @@ jobs:
           if-no-files-found: warn
           path: |
             app/build/outputs/apk/debug/app-debug.apk
-            app/build/reports/lint-results-debug.html
-            app/build/reports/tests/testDebugUnitTest/
-            gradlew
-            gradlew.bat
-            gradle/wrapper/
+            app/build/outputs/apk/release/app-release-unsigned.apk
+            app/build/outputs/mapping/release/
+            app/build/reports/
+            app/build/test-results/
+            release-tools/
