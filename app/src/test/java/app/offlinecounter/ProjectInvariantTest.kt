@@ -13,8 +13,8 @@ class ProjectInvariantTest {
 
         assertTrue(buildScript.contains("namespace = \"app.offlinecounter\""))
         assertTrue(buildScript.contains("applicationId = \"app.offlinecounter\""))
-        assertTrue(buildScript.contains("versionCode = 16"))
-        assertTrue(buildScript.contains("versionName = \"0.16\""))
+        assertTrue(buildScript.contains("versionCode = 17"))
+        assertTrue(buildScript.contains("versionName = \"0.17\""))
         assertFalse(manifest.contains("android.permission.INTERNET"))
         assertTrue(manifest.contains(".CounterAccessibilityService"))
         assertTrue(manifest.split("android:icon=\"@mipmap/ic_launcher\"").size - 1 >= 3)
@@ -37,5 +37,16 @@ class ProjectInvariantTest {
 
         assertTrue(layout.contains("android:id=\"@+id/developerFooter\""))
         assertTrue(layout.contains("android:layout_marginBottom=\"56dp\""))
+    }
+
+    @Test
+    fun overlayHasNoBrightStrokeAndLauncherArtworkUsesSafeZone() {
+        val panel = File("src/main/java/app/offlinecounter/OverlayPanel.kt").readText()
+        val foreground = File("src/main/res/drawable/ic_launcher_foreground.xml").readText()
+
+        assertTrue(panel.contains("root.strokeWidth = 0"))
+        assertFalse(panel.contains("details.minimumWidth"))
+        assertTrue(foreground.contains("android:width=\"72dp\""))
+        assertTrue(foreground.contains("android:height=\"72dp\""))
     }
 }
