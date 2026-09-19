@@ -37,9 +37,7 @@ enum class OverlayAction(val requiresConfirmation: Boolean) {
     Count(false), Export(false), Share(false), Expand(false), StopOrRecount(false), Clear(true), Disable(false)
 }
 
-enum class GlassMode { CompactBlur, ExpandedBlur, CompactOpaque, ExpandedOpaque }
+enum class GlassMode { CompactOpaque, ExpandedOpaque }
 
-fun glassMode(expanded: Boolean, blurAvailable: Boolean): GlassMode = when {
-    expanded -> GlassMode.ExpandedOpaque
-    else -> GlassMode.CompactOpaque
-}
+fun glassMode(expanded: Boolean): GlassMode =
+    if (expanded) GlassMode.ExpandedOpaque else GlassMode.CompactOpaque

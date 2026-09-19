@@ -1,10 +1,7 @@
 <resources>
     <color name="launcher_background">#15307B</color>
-    <color name="launcher_foreground">#FFFFFF</color>
     <color name="brand_primary">#0A416E</color>
     <color name="brand_on_primary">#FFFFFF</color>
     <color name="brand_secondary">#1AAFAC</color>
     <color name="brand_on_secondary">#FFFFFF</color>
-    <color name="brand_tonal">#D8ECEC</color>
-    <color name="brand_on_tonal">#123A45</color>
 </resources>

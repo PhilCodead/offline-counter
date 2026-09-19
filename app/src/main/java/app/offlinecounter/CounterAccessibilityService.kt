@@ -147,7 +147,7 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
 
     private fun openExport(uri: Uri) {
         val intent = Intent(Intent.ACTION_VIEW).apply { setDataAndType(uri, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK) }
-        if (intent.resolveActivity(packageManager) != null) startActivity(intent)
+        runCatching { startActivity(intent) }
     }
 
     private inner class DragListener : View.OnTouchListener {
@@ -156,9 +156,21 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> { start = OverlayPosition(params.x, params.y); touchX = event.rawX; touchY = event.rawY }
                 MotionEvent.ACTION_MOVE -> { val p = OverlayPlacement.clamp(OverlayPosition(start.x + (event.rawX - touchX).toInt(), start.y + (event.rawY - touchY).toInt()), bounds()); params.x = p.x; params.y = p.y; updateWindow() }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { val b = bounds(); val p = OverlayPlacement.clamp(OverlayPosition(params.x, params.y), b); val edge = OverlayPlacement.nearestEdge(p, b); params.x = if (edge == OverlayEdge.Start) 0 else b.width - b.panelWidth; params.y = p.y; updateWindow(); view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK); preferences.save(OverlayPlacement.normalize(OverlayPosition(params.x, params.y), b), edge) }
+                MotionEvent.ACTION_UP -> { finishDrag(view); view.performClick() }
+                MotionEvent.ACTION_CANCEL -> finishDrag(view)
             }
             return true
+        }
+
+        private fun finishDrag(view: View) {
+            val b = bounds()
+            val p = OverlayPlacement.clamp(OverlayPosition(params.x, params.y), b)
+            val edge = OverlayPlacement.nearestEdge(p, b)
+            params.x = if (edge == OverlayEdge.Start) 0 else b.width - b.panelWidth
+            params.y = p.y
+            updateWindow()
+            view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
+            preferences.save(OverlayPlacement.normalize(OverlayPosition(params.x, params.y), b), edge)
         }
     }
 }

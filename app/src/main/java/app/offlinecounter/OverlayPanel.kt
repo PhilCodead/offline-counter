@@ -67,19 +67,19 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         configureDragHandle()
         compact.addView(dragHandle, fixed(themed.dp(38f).toInt(), themed.dp(48f).toInt()))
 
-        configureTextButton(countButton, "Подсчёт", primary, actions::onCount)
+        configureTextButton(countButton, themed.getString(R.string.overlay_count), primary, actions::onCount)
         compact.addView(countButton, wrapWithStartMargin(2))
 
-        configureTextButton(excelButton, "В Excel", secondary, actions::onExport)
+        configureTextButton(excelButton, themed.getString(R.string.overlay_export), secondary, actions::onExport)
         compact.addView(excelButton, wrapWithStartMargin(4))
 
-        configureIconButton(shareButton, R.drawable.ic_share, "Передать Excel", actions::onShare)
+        configureIconButton(shareButton, R.drawable.ic_share, themed.getString(R.string.share_excel), actions::onShare)
         compact.addView(shareButton, fixedWithStartMargin(48, 48, 4))
 
-        configureIconButton(expandButton, R.drawable.ic_expand_more, "Развернуть панель") { setExpanded(!expanded) }
+        configureIconButton(expandButton, R.drawable.ic_expand_more, themed.getString(R.string.overlay_expand)) { setExpanded(!expanded) }
         compact.addView(expandButton, fixedWithStartMargin(48, 48, 4))
 
-        configureIconButton(closeButton, R.drawable.ic_close, "Отключить панель", actions::onClose)
+        configureIconButton(closeButton, R.drawable.ic_close, themed.getString(R.string.overlay_disable), actions::onClose)
         compact.addView(closeButton, fixedWithStartMargin(48, 48, 4))
 
         details.orientation = LinearLayout.VERTICAL
@@ -90,14 +90,14 @@ class OverlayPanel(context: Context, private val actions: Actions) {
 
         statusText.setTextColor(ColorUtils.setAlphaComponent(onSurface, 220))
         statusText.textSize = 13f
-        statusText.text = "Готов к сбору"
+        statusText.setText(R.string.overlay_ready)
         details.addView(statusText)
 
         totalsText.setTextColor(onSurface)
         totalsText.textSize = 15f
         totalsText.typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
         totalsText.setPadding(0, themed.dp(6f).toInt(), 0, themed.dp(8f).toInt())
-        totalsText.text = "Всего: 0   Ж: 0   М: 0"
+        totalsText.text = themed.getString(R.string.overlay_totals, 0, 0, 0)
         details.addView(totalsText)
 
         val detailActions = LinearLayout(themed).apply {
@@ -106,16 +106,16 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         }
         details.addView(detailActions)
 
-        configureTextButton(stopButton, "Пересчитать", Color.rgb(185, 28, 28), actions::onStopOrRecount)
+        configureTextButton(stopButton, themed.getString(R.string.overlay_recount), Color.rgb(185, 28, 28), actions::onStopOrRecount)
         detailActions.addView(stopButton)
-        configureTextButton(clearButton, "Очистить", Color.rgb(71, 85, 105), actions::onClear)
+        configureTextButton(clearButton, themed.getString(R.string.overlay_clear), Color.rgb(71, 85, 105), actions::onClear)
         detailActions.addView(clearButton, wrapWithStartMargin(8))
     }
 
     fun update(total: Int, women: Int, men: Int, collecting: Boolean) {
-        if (collecting || total > 0) countButton.text = "Всего: $total" else countButton.text = "Подсчёт"
-        totalsText.text = "Всего: $total   Ж: $women   М: $men"
-        stopButton.text = if (collecting) "Остановить" else "Пересчитать"
+        countButton.text = if (collecting || total > 0) themed.getString(R.string.overlay_total, total) else themed.getString(R.string.overlay_count)
+        totalsText.text = themed.getString(R.string.overlay_totals, total, women, men)
+        stopButton.text = themed.getString(if (collecting) R.string.overlay_stop else R.string.overlay_recount)
     }
 
     fun setStatus(text: String, reveal: Boolean = false) {
@@ -128,12 +128,10 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         android.transition.TransitionManager.beginDelayedTransition(root)
         expanded = value
         details.visibility = if (value) View.VISIBLE else View.GONE
-        expandButton.contentDescription = if (value) "Свернуть панель" else "Развернуть панель"
+        expandButton.contentDescription = themed.getString(if (value) R.string.overlay_collapse else R.string.overlay_expand)
         expandButton.animate().rotation(if (value) 180f else 0f).setDuration(180).start()
-        val mode = glassMode(value, blurAvailable = false)
+        val mode = glassMode(value)
         val alpha = when (mode) {
-            GlassMode.CompactBlur -> 118
-            GlassMode.ExpandedBlur -> 210
             GlassMode.CompactOpaque -> 232
             GlassMode.ExpandedOpaque -> 248
         }
@@ -145,7 +143,7 @@ class OverlayPanel(context: Context, private val actions: Actions) {
         dragHandle.setImageResource(R.drawable.ic_drag_handle)
         dragHandle.setColorFilter(ColorUtils.setAlphaComponent(onSurface, 190))
         dragHandle.setBackgroundColor(Color.TRANSPARENT)
-        dragHandle.contentDescription = "Переместить"
+        dragHandle.contentDescription = themed.getString(R.string.overlay_move)
         dragHandle.setPadding(themed.dp(7f).toInt(), themed.dp(8f).toInt(), themed.dp(7f).toInt(), themed.dp(8f).toInt())
     }
 

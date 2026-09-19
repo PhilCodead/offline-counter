@@ -66,8 +66,7 @@ class MainActivity : AppCompatActivity() {
         )
         val fallback = Intent(request.fallbackAction)
         val details = Intent(request.detailsAction).putExtra(Intent.EXTRA_COMPONENT_NAME, request.componentName)
-        val target = if (details.resolveActivity(packageManager) != null) details else fallback
-        runCatching { startActivity(target) }
+        runCatching { startActivity(details) }
             .recoverCatching { startActivity(fallback) }
     }
 }

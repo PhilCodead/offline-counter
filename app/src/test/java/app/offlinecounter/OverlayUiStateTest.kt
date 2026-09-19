@@ -21,10 +21,8 @@ class OverlayUiStateTest {
     }
 
     @Test
-    fun panelNeverRequestsBackgroundBlur() {
-        assertEquals(GlassMode.CompactOpaque, glassMode(false, false))
-        assertEquals(GlassMode.ExpandedOpaque, glassMode(true, false))
-        assertEquals(GlassMode.CompactOpaque, glassMode(false, true))
-        assertEquals(GlassMode.ExpandedOpaque, glassMode(true, true))
+    fun panelUsesOpaqueSurfacesInBothStates() {
+        assertEquals(GlassMode.CompactOpaque, glassMode(false))
+        assertEquals(GlassMode.ExpandedOpaque, glassMode(true))
     }
 }
