@@ -26,20 +26,20 @@ Namespace и applicationId: `app.offlinecounter`.
 Из корня проекта:
 
 ```sh
-./gradlew assembleDebug
+./gradlew assembleRelease
 ```
 
-APK: `app/build/outputs/apk/debug/app-debug.apk`.
+Неподписанный APK: `app/build/outputs/apk/release/app-release-unsigned.apk`.
 
 На Windows используйте `gradlew.bat`. Android Studio не обязательна для сборки из командной строки.
 
 ## Проверки
 
 ```sh
-./gradlew testDebugUnitTest testReleaseUnitTest lintDebug lintRelease assembleDebug assembleRelease
+./gradlew testReleaseUnitTest lintRelease assembleRelease
 ```
 
-Эту же команду выполняет [Android CI](../.github/workflows/android.yml). Отчёты тестов и lint находятся в `app/build/reports/`. CI также сохраняет APK, результаты тестов и R8 mapping в артефакте `offline-counter-ci`.
+Проверки также выполняет [Android CI](../.github/workflows/android.yml). Отчёты тестов и lint находятся в `app/build/reports/`. CI также сохраняет APK, результаты тестов и R8 mapping в артефакте `offline-counter-ci`.
 
 Release APK в артефакте не подписан. Порядок подписи описан в [подготовке релиза](RELEASE.md).
 
@@ -62,4 +62,4 @@ Release APK в артефакте не подписан. Порядок подп
 
 ## Ветки и версии
 
-`main` содержит текущую разработку, сейчас — `1.0.2-dev`. Опубликованному APK 1.0.1 соответствует тег `v1.0.1`. Для сборки предыдущей версии используйте её тег и требования к окружению из этой версии исходников.
+`main` содержит текущую разработку. Первому публичному выпуску 1.0.1 соответствует тег `v1.0.1`. Для сборки опубликованного приложения используйте этот тег и требования к окружению из его исходников.
