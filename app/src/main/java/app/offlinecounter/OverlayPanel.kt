@@ -30,7 +30,7 @@ class OverlayPanel(context: Context, private val actions: Actions) {
     private val surface = if (darkTheme) Color.rgb(30, 38, 49) else Color.rgb(246, 248, 250)
     private val onSurface = if (darkTheme) Color.rgb(245, 247, 250) else Color.rgb(30, 38, 49)
     private val primary = themed.materialColor(
-        com.google.android.material.R.attr.colorPrimary,
+        androidx.appcompat.R.attr.colorPrimary,
         Color.rgb(37, 99, 235),
     )
     private val secondary = themed.materialColor(
