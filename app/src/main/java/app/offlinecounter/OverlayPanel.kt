@@ -6,7 +6,6 @@ import android.graphics.Color
 import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.View
-import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.graphics.ColorUtils
@@ -31,7 +30,7 @@ class OverlayPanel(context: Context, private val actions: Actions) {
     private val secondary = MaterialColors.getColor(themed, com.google.android.material.R.attr.colorSecondary, Color.rgb(26, 175, 172))
 
     val root = MaterialCardView(themed)
-    val dragHandle = ImageButton(themed)
+    val dragHandle = DragHandleButton(themed)
     private val countButton = MaterialButton(themed)
     private val excelButton = MaterialButton(themed)
     private val shareButton = MaterialButton(themed)
