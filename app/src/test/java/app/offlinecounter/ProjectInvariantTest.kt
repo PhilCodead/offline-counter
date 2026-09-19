@@ -13,9 +13,21 @@ class ProjectInvariantTest {
 
         assertTrue(buildScript.contains("namespace = \"app.offlinecounter\""))
         assertTrue(buildScript.contains("applicationId = \"app.offlinecounter\""))
-        assertTrue(buildScript.contains("versionCode = 14"))
-        assertTrue(buildScript.contains("versionName = \"0.14\""))
+        assertTrue(buildScript.contains("versionCode = 15"))
+        assertTrue(buildScript.contains("versionName = \"0.15\""))
         assertFalse(manifest.contains("android.permission.INTERNET"))
         assertTrue(manifest.contains(".CounterAccessibilityService"))
+        assertTrue(manifest.split("android:icon=\"@mipmap/ic_launcher\"").size - 1 >= 3)
+    }
+
+    @Test
+    fun setupGuideMatchesTheSamsungAccessibilityRoute() {
+        val strings = File("src/main/res/values/strings.xml").readText()
+
+        assertTrue(strings.contains("<string name=\"enable_accessibility\">Включить Accessibility</string>"))
+        assertTrue(strings.contains("2. Откройте «Установленные приложения»."))
+        assertTrue(strings.contains("3. Выберите «Оффлайн-счётчик»."))
+        assertTrue(strings.contains("4. Переключите ползунок во включённое положение и нажмите «Разрешить»."))
+        assertTrue(strings.contains("5. Вернитесь в исходное приложение и используйте плавающее окно."))
     }
 }
