@@ -1,9 +1,22 @@
-name: Предложение
-description: Предложить улучшение
+name: Предложить изменение
+description: Сценарий использования, который приложение пока не поддерживает.
 body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Задача
+      description: Что вы пытаетесь сделать и какое ограничение мешает?
+    validations:
+      required: true
   - type: textarea
     id: proposal
     attributes:
-      label: Что стоит улучшить и зачем
+      label: Предлагаемое поведение
+      description: Опишите результат, который помог бы решить задачу.
     validations:
       required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Альтернативы
+      description: Как вы решаете эту задачу сейчас? Какие другие варианты рассматривали?
