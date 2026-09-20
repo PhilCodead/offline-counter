@@ -8,8 +8,10 @@ updates:
     ignore:
       - dependency-name: "androidx.core:core-ktx"
         versions: ["1.19.0"]
+      - dependency-name: "com.android.application"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "org.jetbrains.kotlin.android"
-        versions: ["2.4.20"]
+        update-types: ["version-update:semver-minor"]
     groups:
       android:
         patterns: ["androidx.*", "com.google.android.material"]
@@ -18,3 +20,6 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: "gradle/actions"
+        versions: ["6"]

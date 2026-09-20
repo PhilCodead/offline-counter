@@ -19,7 +19,7 @@ class ProjectInvariantTest {
     }
 
     @Test
-    fun setupGuideMatchesTheSamsungAccessibilityRoute() {
+    fun setupGuideMatchesTheAccessibilitySettingsRoute() {
         val strings = File("src/main/res/values/strings.xml").readText()
 
         assertTrue(strings.contains("<string name=\"enable_accessibility\">Включить Accessibility</string>"))
