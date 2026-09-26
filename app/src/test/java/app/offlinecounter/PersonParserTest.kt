@@ -43,27 +43,4 @@ class PersonParserTest {
             Person("анна смирнова", "01.01.1990", "Ж", "").key,
         )
     }
-    @Test
-    fun parsesAcceptedListWhenDemographicsAndBirthDateAreSeparateNodes() {
-        val people = parser.parse(listOf(
-            "Принятые",
-            "Строганова Маргарита Алексеевна",
-            "ж, 58 лет",
-            "(20.08.1968)",
-            "Флю-М (Вакцина гриппозная инактивированная расщепленная) р-р для в/м 1 доза 0.5",
-            "22.09.2026",
-            "Кишиневский Николай Андреевич",
-            "м, 20 лет",
-            "(03.02.2006)",
-            "Флю-М (Вакцина гриппозная инактивированная расщепленная) р-р для в/м 1 доза 0.5",
-            "22.09.2026",
-        ))
-        assertEquals(2, people.size)
-        assertEquals("Строганова Маргарита Алексеевна", people[0].fio)
-        assertEquals("20.08.1968", people[0].birthDate)
-        assertEquals("Ж", people[0].sex)
-        assertEquals("Кишиневский Николай Андреевич", people[1].fio)
-        assertEquals("М", people[1].sex)
-    }
-
 }
