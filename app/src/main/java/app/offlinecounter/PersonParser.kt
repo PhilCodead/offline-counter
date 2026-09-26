@@ -13,15 +13,19 @@ class PersonParser {
     internal fun parse(text: List<String>): List<Person> {
         val result = ArrayList<Person>()
         text.forEachIndexed { index, raw ->
-            val open = raw.indexOf('(')
+            // Some accepted-list rows expose the demographics and birth date as separate nodes.
+            val line = if (raw.matches(Regex("\\\\(\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{4}\\\\)")) && index > 0) {
+                text[index - 1] + " " + raw
+            } else raw
+            val open = line.indexOf('(')
             if (open < 0) return@forEachIndexed
-            val close = raw.indexOf(')', open + 1)
+            val close = line.indexOf(')', open + 1)
             if (close < 0) return@forEachIndexed
 
-            val birthDate = raw.substring(open + 1, close)
+            val birthDate = line.substring(open + 1, close)
             if (!isDate(birthDate)) return@forEachIndexed
 
-            val lower = raw.lowercase(Locale.ROOT)
+            val lower = line.lowercase(Locale.ROOT)
             val femaleIndex = lower.indexOf("ж,")
             val maleIndex = lower.indexOf("м,")
             val sexIndex = when {
@@ -31,7 +35,7 @@ class PersonParser {
             }
             val sex = if (femaleIndex >= 0) "Ж" else "М"
 
-            val inlineName = raw.substring(0, sexIndex).trim().takeIf(::isName)
+            val inlineName = line.substring(0, sexIndex).trim().takeIf(::isName)
             val fio = inlineName ?: findPreviousName(text, index) ?: return@forEachIndexed
             val status = findStatus(text, index)
             result += Person(fio.trim().split(Regex("\\s+")).joinToString(" "), birthDate, sex, status)
