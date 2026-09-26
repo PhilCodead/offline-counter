@@ -16,7 +16,7 @@ class WorkbookBuilderTest {
         val xml = WorkbookBuilder.sheetXml(listOf(Person("Иванов Иван", "01.01.1990", "М", status)))
         val document = DocumentBuilderFactory.newInstance().newDocumentBuilder()
             .parse(ByteArrayInputStream(xml.toByteArray(Charsets.UTF_8)))
-        assertEquals("готов ✅", document.getElementsByTagName("t").item(8).textContent.trim())
+        assertEquals("готов ✅", document.getElementsByTagName("t").item(10).textContent.trim())
     }
 
     @Test
