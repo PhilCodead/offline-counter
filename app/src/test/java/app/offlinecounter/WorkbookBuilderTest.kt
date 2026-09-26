@@ -63,4 +63,21 @@ class WorkbookBuilderTest {
         assertTrue(xml.contains("М: 0"))
         assertTrue(xml.contains("Ж: 0"))
     }
+    @Test
+    fun sexTotalsStayDirectlyUnderGrandTotalForLongLists() {
+        val people = List(40) { Person("Пациент Номер", "01.01.1990", if (it % 2 == 0) "Ж" else "М", "") }
+        val xml = WorkbookBuilder.sheetXml(people)
+        val document = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+            .parse(ByteArrayInputStream(xml.toByteArray(Charsets.UTF_8)))
+        val rows = document.getElementsByTagName("row")
+        fun cellsAt(index: Int): List<String> {
+            val cells = rows.item(index).childNodes
+            return (0 until cells.length).map { cells.item(it).textContent }
+        }
+        assertEquals("Общее: 40", cellsAt(0).last())
+        assertEquals("М: 20", cellsAt(1).last())
+        assertEquals("Ж: 20", cellsAt(2).last())
+        assertEquals("Пациент Номер", cellsAt(3).first())
+    }
+
 }
