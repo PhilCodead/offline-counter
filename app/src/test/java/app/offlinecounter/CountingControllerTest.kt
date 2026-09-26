@@ -121,4 +121,21 @@ class CountingControllerTest {
         assertTrue(controller.onFrame(FrameSnapshot(emptyList(), 401)) is CountingCommand.Fail)
         assertEquals(CountingPhase.Error, controller.state.phase)
     }
+    @Test
+    fun scrollingPastUnrecognizedScreensDoesNotSilentlyDropLaterPatients() {
+        val controller = CountingController()
+        controller.start()
+        controller.onFrame(FrameSnapshot(emptyList(), 0))
+        controller.onScrollResult(false)
+        controller.onFrame(FrameSnapshot(listOf(Person("Первая Пациентка", "01.01.1990", "Ж", "")), 1))
+        assertEquals(CountingCommand.Wait, controller.onScrollResult(true))
+        repeat(6) { page ->
+            assertEquals(CountingCommand.ScrollForward, controller.onFrame(FrameSnapshot(emptyList(), page + 2)))
+            assertEquals(CountingCommand.Wait, controller.onScrollResult(true))
+        }
+        controller.onFrame(FrameSnapshot(listOf(Person("Второй Пациент", "02.02.1990", "М", "")), 8))
+        assertEquals(CountingCommand.Complete, controller.onScrollResult(false))
+        assertEquals(2, controller.state.total)
+    }
+
 }
