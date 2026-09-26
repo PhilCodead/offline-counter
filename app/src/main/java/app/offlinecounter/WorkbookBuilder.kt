@@ -23,8 +23,10 @@ object WorkbookBuilder {
                 cell("D1", "Статус")
                 cell("F1", "Общее: ${people.size}")
             }
+            row(2) { cell("F2", "М: $men") }
+            row(3) { cell("F3", "Ж: $women") }
             people.forEachIndexed { index, person ->
-                val number = index + 2
+                val number = index + 4
                 row(number) {
                     cell("A$number", person.normalizedFio)
                     cell("B$number", person.birthDate)
@@ -32,8 +34,6 @@ object WorkbookBuilder {
                     cell("D$number", person.status)
                 }
             }
-            row(people.size + 2) { cell("F${people.size + 2}", "М: $men") }
-            row(people.size + 3) { cell("F${people.size + 3}", "Ж: $women") }
             append("</sheetData></worksheet>")
         }
     }
