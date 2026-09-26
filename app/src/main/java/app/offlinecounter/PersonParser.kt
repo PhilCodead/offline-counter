@@ -14,7 +14,7 @@ class PersonParser {
         val result = ArrayList<Person>()
         text.forEachIndexed { index, raw ->
             // Some accepted-list rows expose the demographics and birth date as separate nodes.
-            val line = if (raw.matches(Regex("\\\\(\\\\d{2}\\\\.\\\\d{2}\\\\.\\\\d{4}\\\\)")) && index > 0) {
+            val line = if (raw.length == 12 && raw.first() == '(' && raw.last() == ')' && isDate(raw.substring(1, 11)) && index > 0) {
                 text[index - 1] + " " + raw
             } else raw
             val open = line.indexOf('(')
