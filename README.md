@@ -4,7 +4,6 @@
 
 Android-приложение для подсчёта записей в открытом списке и экспорта результатов в XLSX. Работает через службу специальных возможностей: читает доступный текст, прокручивает список и показывает результат в плавающей панели.
 
-[![Android CI](https://github.com/PhilCodead/offline-counter/actions/workflows/android.yml/badge.svg?branch=main)](https://github.com/PhilCodead/offline-counter/actions/workflows/android.yml)
 ![Android 10+](https://img.shields.io/badge/Android-10%2B-3DDC84)
 
 [Скачать APK](https://github.com/PhilCodead/offline-counter/releases/latest) · [История изменений](CHANGELOG.md) · [Сообщить об ошибке](https://github.com/PhilCodead/offline-counter/issues/new/choose)
@@ -42,7 +41,7 @@ Android-приложение для подсчёта записей в откр�
 
 ## Релиз
 
-Последний опубликованный релиз — **1.0.2**. Исходники версии 1.0.3 подготовлены; подписанный APK будет доступен в Releases после публикации.
+Последний опубликованный релиз — **1.0.3**.
 
 Каждый релиз содержит APK, файл `SHA256SUMS.txt` и сведения о подписи. Предупреждения об установке описаны в [руководстве по выпуску](docs/RELEASE.md#play-protect).
 
