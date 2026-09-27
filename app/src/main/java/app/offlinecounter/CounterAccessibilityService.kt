@@ -178,14 +178,8 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
                 delayMs = FORWARD_DELAY_MS,
             )
             CountingCommand.Wait -> schedule(WAIT_DELAY_MS)
-            CountingCommand.Complete -> {
-                render()
-                notifyUser(R.string.count_complete)
-            }
-            is CountingCommand.Fail -> {
-                render()
-                notifyUser(command.message)
-            }
+            CountingCommand.Complete -> notifyUser(R.string.count_complete)
+            is CountingCommand.Fail -> notifyUser(command.message)
         }
     }
 
@@ -241,7 +235,7 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
                         it.id == AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_DOWN.id
                 }
                 val score = ScrollableTargetScore(parser.snapshot(current).people.size, depth, vertical)
-                if (best == null || score > best!!) {
+                if (best?.let { score > it } ?: true) {
                     best = score
                     selected = current
                 }
