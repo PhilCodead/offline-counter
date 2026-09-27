@@ -7,7 +7,6 @@ class CountingController {
     private var unavailableTicks = 0
     private var lastFingerprint: Int? = null
     private var sameScreen = 0
-    private var staleScrolls = 0
     private var pendingScroll: CountingCommand? = null
 
     var state = OverlayUiState()
@@ -41,14 +40,7 @@ class CountingController {
             pendingScroll = CountingCommand.ScrollBackward
             return CountingCommand.ScrollBackward
         }
-        val previousTotal = collected.size
         frame.people.forEach { collected.putIfAbsent(it.key, it) }
-        if (collected.size == previousTotal) {
-            staleScrolls++
-        } else {
-            staleScrolls = 0
-            sameScreen = 0
-        }
         state = state.copy(
             total = collected.size,
             women = collected.values.count { it.sex == "Ж" },
@@ -66,7 +58,7 @@ class CountingController {
         if (command == CountingCommand.ScrollBackward) {
             return if (scrolled) CountingCommand.Wait else beginCollection()
         }
-        if (!scrolled || sameScreen >= 2 || staleScrolls >= 5) {
+        if (!scrolled || sameScreen >= 2) {
             state = state.copy(phase = CountingPhase.Completed, status = "Готово")
             return CountingCommand.Complete
         }
@@ -99,7 +91,6 @@ class CountingController {
     private fun resetProgress() {
         lastFingerprint = null
         sameScreen = 0
-        staleScrolls = 0
         pendingScroll = null
     }
 

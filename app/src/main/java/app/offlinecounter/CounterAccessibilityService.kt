@@ -178,14 +178,8 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
                 delayMs = FORWARD_DELAY_MS,
             )
             CountingCommand.Wait -> schedule(WAIT_DELAY_MS)
-            CountingCommand.Complete -> {
-                render()
-                notifyUser(R.string.count_complete)
-            }
-            is CountingCommand.Fail -> {
-                render()
-                notifyUser(command.message)
-            }
+            CountingCommand.Complete -> notifyUser(R.string.count_complete)
+            is CountingCommand.Fail -> notifyUser(command.message)
         }
     }
 
@@ -231,10 +225,25 @@ class CounterAccessibilityService : AccessibilityService(), OverlayPanel.Actions
     }
 
     private fun findScrollable(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? {
-        if (node == null) return null
-        if (node.isScrollable) return node
-        for (index in 0 until node.childCount) findScrollable(node.getChild(index))?.let { return it }
-        return null
+        var selected: AccessibilityNodeInfo? = null
+        var best: ScrollableTargetScore? = null
+        fun visit(current: AccessibilityNodeInfo?, depth: Int) {
+            if (current == null) return
+            if (current.isScrollable) {
+                val vertical = current.actionList.any {
+                    it.id == AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_UP.id ||
+                        it.id == AccessibilityNodeInfo.AccessibilityAction.ACTION_SCROLL_DOWN.id
+                }
+                val score = ScrollableTargetScore(parser.snapshot(current).people.size, depth, vertical)
+                if (best?.let { score > it } ?: true) {
+                    best = score
+                    selected = current
+                }
+            }
+            for (index in 0 until current.childCount) visit(current.getChild(index), depth + 1)
+        }
+        visit(node, 0)
+        return selected
     }
 
     private fun bounds() = OverlayBounds(

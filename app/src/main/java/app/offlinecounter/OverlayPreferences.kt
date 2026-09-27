@@ -1,16 +1,17 @@
 package app.offlinecounter
 
 import android.content.Context
+import androidx.core.content.edit
 
 class OverlayPreferences(context: Context) {
     private val preferences = context.getSharedPreferences("overlay_position", Context.MODE_PRIVATE)
 
     fun save(position: NormalizedPosition, edge: OverlayEdge?) {
-        preferences.edit()
-            .putFloat(POSITION_X, position.x)
-            .putFloat(POSITION_Y, position.y)
-            .putString(EDGE, edge?.name ?: "Free")
-            .apply()
+        preferences.edit {
+            putFloat(POSITION_X, position.x)
+            putFloat(POSITION_Y, position.y)
+            putString(EDGE, edge?.name ?: "Free")
+        }
     }
 
     fun load(): Pair<NormalizedPosition, OverlayEdge?> =

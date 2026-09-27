@@ -14,8 +14,8 @@ android {
         applicationId = "app.offlinecounter"
         minSdk = 29
         targetSdk = 36
-        versionCode = 24
-        versionName = "1.0.2"
+        versionCode = 25
+        versionName = "1.0.3"
     }
 
     buildFeatures {
@@ -30,6 +30,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".beta"
+        }
         release {
             isDebuggable = false
             isMinifyEnabled = true

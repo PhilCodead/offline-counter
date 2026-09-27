@@ -9,10 +9,12 @@ import java.util.zip.ZipOutputStream
 
 object WorkbookBuilder {
     private const val SHEET = "xl/worksheets/sheet1.xml"
+    private const val WORKBOOK = "xl/workbook.xml"
 
     fun sheetXml(people: Collection<Person>): String {
-        val men = people.count { it.sex == "М" }
-        val women = people.count { it.sex == "Ж" }
+        val records = people.toList()
+        val men = records.count { it.sex == "М" }
+        val women = records.count { it.sex == "Ж" }
         return buildString {
             append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>")
             append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>")
@@ -21,19 +23,23 @@ object WorkbookBuilder {
                 cell("B1", "Дата рождения")
                 cell("C1", "Пол")
                 cell("D1", "Статус")
-                cell("F1", "Общее: ${people.size}")
+                cell("F1", "Общее: ${records.size}")
             }
-            people.forEachIndexed { index, person ->
+            repeat(maxOf(records.size, 2)) { index ->
                 val number = index + 2
                 row(number) {
-                    cell("A$number", person.normalizedFio)
-                    cell("B$number", person.birthDate)
-                    cell("C$number", person.sex)
-                    cell("D$number", person.status)
+                    records.getOrNull(index)?.let { person ->
+                        cell("A$number", person.normalizedFio)
+                        cell("B$number", person.birthDate)
+                        cell("C$number", person.sex)
+                        cell("D$number", person.status)
+                    }
+                    when (number) {
+                        2 -> cell("F2", "М: $men")
+                        3 -> cell("F3", "Ж: $women")
+                    }
                 }
             }
-            row(people.size + 2) { cell("F${people.size + 2}", "М: $men") }
-            row(people.size + 3) { cell("F${people.size + 3}", "Ж: $women") }
             append("</sheetData></worksheet>")
         }
     }
@@ -102,6 +108,4 @@ object WorkbookBuilder {
             }
         }
     }
-
-    private const val WORKBOOK = "xl/workbook.xml"
 }
