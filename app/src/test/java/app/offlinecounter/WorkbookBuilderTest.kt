@@ -1,13 +1,13 @@
 package app.offlinecounter
 
-import org.junit.Assert.assertTrue
-import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.util.zip.ZipInputStream
 import javax.xml.parsers.DocumentBuilderFactory
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
 
 class WorkbookBuilderTest {
     @Test
@@ -16,7 +16,7 @@ class WorkbookBuilderTest {
         val xml = WorkbookBuilder.sheetXml(listOf(Person("Иванов Иван", "01.01.1990", "М", status)))
         val document = DocumentBuilderFactory.newInstance().newDocumentBuilder()
             .parse(ByteArrayInputStream(xml.toByteArray(Charsets.UTF_8)))
-        assertEquals("готов ✅", document.getElementsByTagName("t").item(10).textContent.trim())
+        assertEquals("готов ✅", cell(document, "D2"))
     }
 
     @Test
@@ -63,21 +63,25 @@ class WorkbookBuilderTest {
         assertTrue(xml.contains("М: 0"))
         assertTrue(xml.contains("Ж: 0"))
     }
+
     @Test
-    fun sexTotalsStayDirectlyUnderGrandTotalForLongLists() {
-        val people = List(40) { Person("Пациент Номер", "01.01.1990", if (it % 2 == 0) "Ж" else "М", "") }
+    fun peopleStartDirectlyUnderHeadersWhileSexTotalsRemainInColumnF() {
+        val people = List(40) { Person("Пациент $it", "01.01.1990", if (it % 2 == 0) "Ж" else "М", "") }
         val xml = WorkbookBuilder.sheetXml(people)
         val document = DocumentBuilderFactory.newInstance().newDocumentBuilder()
             .parse(ByteArrayInputStream(xml.toByteArray(Charsets.UTF_8)))
-        val rows = document.getElementsByTagName("row")
-        fun cellsAt(index: Int): List<String> {
-            val cells = rows.item(index).childNodes
-            return (0 until cells.length).map { cells.item(it).textContent }
-        }
-        assertEquals("Общее: 40", cellsAt(0).last())
-        assertEquals("М: 20", cellsAt(1).last())
-        assertEquals("Ж: 20", cellsAt(2).last())
-        assertEquals("Пациент Номер", cellsAt(3).first())
+        assertEquals("Общее: 40", cell(document, "F1"))
+        assertEquals("Пациент 0", cell(document, "A2"))
+        assertEquals("М: 20", cell(document, "F2"))
+        assertEquals("Пациент 1", cell(document, "A3"))
+        assertEquals("Ж: 20", cell(document, "F3"))
+        assertEquals("Пациент 39", cell(document, "A41"))
     }
 
+    private fun cell(document: org.w3c.dom.Document, reference: String): String {
+        val cells = document.getElementsByTagName("c")
+        return (0 until cells.length).firstNotNullOfOrNull { index ->
+            cells.item(index).takeIf { it.attributes.getNamedItem("r").nodeValue == reference }?.textContent
+        } ?: error("Missing cell $reference")
+    }
 }
